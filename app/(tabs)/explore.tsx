@@ -4,6 +4,7 @@ import ExploreComponent from '@/components/explore';
 import DestinationDetailComponent from '@/components/destination-detail';
 import CreatePlanComponent from '@/components/planner/create-plan';
 import LoadingSimulationComponent from '@/components/planner/loading-simulation';
+import ItineraryComponent from '@/components/planner/itinerary';
 
 export default function ExploreScreen() {
   const [selectedDestinationId, setSelectedDestinationId] = useState<string | null>(null);
@@ -20,20 +21,7 @@ export default function ExploreScreen() {
 
   if (view === 'final') {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: '#fff', justifyContent: 'center', alignItems: 'center' }}>
-        <Text style={{ fontSize: 24, fontWeight: 'bold' }}>Your Itinerary</Text>
-        <Text style={{ color: '#666', marginTop: 10 }}>Itinerary details will be implemented here.</Text>
-        <TouchableOpacity 
-          onPress={() => {
-            setView('normal');
-            setConfiguringPlanFor(null);
-            setSelectedDestinationId(null);
-          }}
-          style={{ marginTop: 20, padding: 12, backgroundColor: '#000', borderRadius: 8 }}
-        >
-          <Text style={{ color: '#fff' }}>Finish</Text>
-        </TouchableOpacity>
-      </SafeAreaView>
+      <ItineraryComponent />
     );
   }
 

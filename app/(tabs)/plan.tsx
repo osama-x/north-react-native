@@ -31,16 +31,7 @@ export default function PlanScreen() {
 
   if (view === 'final') {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: '#fff', justifyContent: 'center', alignItems: 'center' }}>
-        <Text style={{ fontSize: 24, fontWeight: 'bold' }}>Your Itinerary</Text>
-        <Text style={{ color: '#666', marginTop: 10 }}>Itinerary details will be implemented here.</Text>
-        <TouchableOpacity 
-          onPress={() => setView('list')}
-          style={{ marginTop: 20, padding: 12, backgroundColor: '#000', borderRadius: 8 }}
-        >
-          <Text style={{ color: '#fff' }}>Back to My Plans</Text>
-        </TouchableOpacity>
-      </SafeAreaView>
+      <ItineraryComponent />
     );
   }
 

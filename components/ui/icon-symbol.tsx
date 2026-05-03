@@ -22,6 +22,18 @@ const MAPPING = {
   'map.fill': 'map',
   'calendar.fill': 'event',
   'bed.double.fill': 'hotel',
+  'plus': 'add',
+  'minus': 'remove',
+  'chevron.left': 'chevron-left',
+  'car.fill': 'directions-car',
+  'bus.fill': 'directions-bus',
+  'airplane': 'flight',
+  'checkmark.circle.fill': 'check-circle',
+  'chevron.up': 'keyboard-arrow-up',
+  'chevron.down': 'keyboard-arrow-down',
+  'star.fill': 'star',
+  'arrow.right.circle.fill': 'arrow-circle-right',
+  'ellipsis': 'more-horiz',
 } as IconMapping;
 
 /**

@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import {
   View,
   Text,
@@ -6,6 +6,8 @@ import {
   ScrollView,
   TextInput,
   SafeAreaView,
+  LayoutChangeEvent,
+  GestureResponderEvent,
 } from 'react-native';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { IconSymbol } from '@/components/ui/icon-symbol';
@@ -23,6 +25,39 @@ export default function CreatePlanComponent({ initialDestination, onBack, onCont
   const colorScheme = useColorScheme();
   const styles = useMemo(() => createStyles(colorScheme ?? 'light'), [colorScheme]);
   const theme = Colors[colorScheme ?? 'light'];
+  
+  const trackRef = useRef<View>(null);
+  const [trackInfo, setTrackInfo] = useState({ x: 0, width: 0 });
+  const [isSliding, setIsSliding] = useState(false);
+
+  const onTrackLayout = (e: LayoutChangeEvent) => {
+    trackRef.current?.measure((x, y, width, height, pageX, pageY) => {
+      setTrackInfo({ x: pageX, width });
+    });
+  };
+
+  const handleSliderChange = (event: GestureResponderEvent, type: 'duration' | 'budget') => {
+    if (trackInfo.width === 0) return;
+    
+    setIsSliding(true);
+    const { pageX } = event.nativeEvent;
+    const relativeX = pageX - trackInfo.x;
+    const percentage = Math.max(0, Math.min(1, relativeX / trackInfo.width));
+    
+    if (type === 'duration') {
+      const value = Math.round(percentage * 14);
+      setConfig(prev => ({ ...prev, duration: Math.max(1, value) }));
+    } else {
+      const min = 10000;
+      const max = 500000;
+      const value = Math.round((percentage * (max - min) + min) / 5000) * 5000;
+      setConfig(prev => ({ ...prev, budget: value }));
+    }
+  };
+
+  const stopSliding = () => {
+    setIsSliding(false);
+  };
 
   const [config, setConfig] = useState<TripConfig>({
     sourceCity: 'Islamabad',
@@ -98,7 +133,12 @@ export default function CreatePlanComponent({ initialDestination, onBack, onCont
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        contentContainerStyle={styles.scrollContent} 
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        scrollEnabled={!isSliding} // DISABLE SCROLLING WHILE SLIDING
+      >
         <TouchableOpacity style={styles.backButton} onPress={onBack}>
           <IconSymbol name="chevron.left" size={24} color={theme.primary} />
         </TouchableOpacity>
@@ -151,18 +191,42 @@ export default function CreatePlanComponent({ initialDestination, onBack, onCont
             <Text style={styles.label}>Trip Duration</Text>
             <Text style={styles.sliderValue}>{config.duration} Days</Text>
           </View>
-          <View style={styles.sliderTrack}>
-            <View style={[styles.sliderFill, { width: `${(config.duration / 14) * 100}%` }]} />
+          <View 
+            ref={trackRef}
+            style={styles.sliderTrack}
+            onLayout={onTrackLayout}
+            onStartShouldSetResponder={() => true}
+            onMoveShouldSetResponder={() => true}
+            onResponderGrant={(e) => handleSliderChange(e, 'duration')}
+            onResponderMove={(e) => handleSliderChange(e, 'duration')}
+            onResponderRelease={stopSliding}
+            onResponderTerminate={stopSliding}
+            onResponderTerminationRequest={() => false}
+          >
+            <View style={[styles.sliderFill, { width: `${(config.duration / 14) * 100}%` }]}>
+              <View style={styles.sliderThumb} />
+            </View>
           </View>
         </View>
 
         <View style={styles.sliderSection}>
           <View style={styles.sliderHeader}>
             <Text style={styles.label}>Budget Ceiling</Text>
-            <Text style={styles.sliderValue}>PKR {config.budget}</Text>
+            <Text style={styles.sliderValue}>PKR {config.budget.toLocaleString()}</Text>
           </View>
-          <View style={styles.sliderTrack}>
-            <View style={[styles.sliderFill, { width: `${(config.budget / 200000) * 100}%` }]} />
+          <View 
+            style={styles.sliderTrack}
+            onStartShouldSetResponder={() => true}
+            onMoveShouldSetResponder={() => true}
+            onResponderGrant={(e) => handleSliderChange(e, 'budget')}
+            onResponderMove={(e) => handleSliderChange(e, 'budget')}
+            onResponderRelease={stopSliding}
+            onResponderTerminate={stopSliding}
+            onResponderTerminationRequest={() => false}
+          >
+            <View style={[styles.sliderFill, { width: `${((config.budget - 10000) / (500000 - 10000)) * 100}%` }]}>
+              <View style={styles.sliderThumb} />
+            </View>
           </View>
         </View>
 

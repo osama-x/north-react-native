@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   View,
   Text,
@@ -7,6 +7,12 @@ import {
   Image,
   SafeAreaView,
   ActivityIndicator,
+  LayoutAnimation,
+  Platform,
+  UIManager,
+  Modal,
+  TouchableWithoutFeedback,
+  Dimensions,
 } from 'react-native';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { IconSymbol } from '@/components/ui/icon-symbol';
@@ -15,6 +21,12 @@ import { ItineraryService } from './itinerary.service';
 import { TripItinerary, ItineraryDay, ItineraryNode, StayOption } from './types';
 import { Colors } from '@/constants/theme';
 
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+
+if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
+
 export default function ItineraryComponent() {
   const colorScheme = useColorScheme();
   const styles = useMemo(() => createStyles(colorScheme ?? 'light'), [colorScheme]);
@@ -22,6 +34,8 @@ export default function ItineraryComponent() {
 
   const [itinerary, setItinerary] = useState<TripItinerary | null>(null);
   const [loading, setLoading] = useState(true);
+  const [collapsedDays, setCollapsedDays] = useState<Record<string, boolean>>({});
+  const [menuConfig, setMenuConfig] = useState<{ dayId: string; groupId: string; x: number; y: number } | null>(null);
 
   useEffect(() => {
     loadData();
@@ -30,11 +44,25 @@ export default function ItineraryComponent() {
   const loadData = async () => {
     setLoading(true);
     const data = await ItineraryService.getItinerary();
-    setItinerary(data);
+    setItinerary(JSON.parse(JSON.stringify(data)));
+    
+    const initialCollapsed: Record<string, boolean> = {};
+    data.days.forEach((day, index) => {
+      initialCollapsed[day.id] = index !== 0;
+    });
+    setCollapsedDays(initialCollapsed);
     setLoading(false);
   };
 
-  const toggleNode = (dayId: string, nodeId: string) => {
+  const toggleDay = (dayId: string) => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setCollapsedDays(prev => ({
+      ...prev,
+      [dayId]: !prev[dayId]
+    }));
+  };
+
+  const toggleSubItem = (dayId: string, groupId: string, itemId: string) => {
     if (!itinerary) return;
     
     setItinerary({
@@ -44,12 +72,65 @@ export default function ItineraryComponent() {
         return {
           ...day,
           nodes: day.nodes.map(node => {
-            if (node.id !== nodeId || node.isFixed) return node;
-            return { ...node, isSelected: !node.isSelected };
+            if (node.id !== groupId || !node.items) return node;
+            return {
+              ...node,
+              items: node.items.map(item => {
+                if (item.id !== itemId) return item;
+                return { ...item, isSelected: !item.isSelected };
+              })
+            };
           })
         };
       })
     });
+  };
+
+  const hideSubItem = (dayId: string, groupId: string, itemId: string) => {
+    if (!itinerary) return;
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setItinerary({
+      ...itinerary,
+      days: itinerary.days.map(day => {
+        if (day.id !== dayId) return day;
+        return {
+          ...day,
+          nodes: day.nodes.map(node => {
+            if (node.id !== groupId || !node.items) return node;
+            return {
+              ...node,
+              items: node.items.map(item => {
+                if (item.id !== itemId) return item;
+                return { ...item, isHidden: true, isSelected: false };
+              })
+            };
+          })
+        };
+      })
+    });
+  };
+
+  const resetActivityGroup = (dayId: string, groupId: string) => {
+    if (!itinerary) return;
+    
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setItinerary({
+      ...itinerary,
+      days: itinerary.days.map(day => {
+        if (day.id !== dayId) return day;
+        return {
+          ...day,
+          nodes: day.nodes.map(node => {
+            if (node.id !== groupId || !node.originalItems) return node;
+            return {
+              ...node,
+              items: JSON.parse(JSON.stringify(node.originalItems))
+            };
+          })
+        };
+      })
+    });
+    setMenuConfig(null);
   };
 
   const selectStay = (dayId: string, stayId: string) => {
@@ -68,11 +149,15 @@ export default function ItineraryComponent() {
     if (!itinerary) return 0;
     let cost = 0;
     itinerary.days.forEach(day => {
-      // Add selected nodes cost
       day.nodes.forEach(node => {
-        if (node.isSelected) cost += node.cost;
+        if (node.type !== 'ActivityGroup') {
+          if (node.isSelected && !node.isHidden) cost += node.cost;
+        } else {
+          node.items?.forEach(item => {
+            if (item.isSelected && !item.isHidden) cost += item.cost;
+          });
+        }
       });
-      // Add selected stay cost
       const selectedStay = day.stayOptions.find(s => s.id === day.selectedStayId);
       if (selectedStay) cost += selectedStay.cost;
     });
@@ -80,38 +165,57 @@ export default function ItineraryComponent() {
   }, [itinerary]);
 
   const renderNode = (dayId: string, node: ItineraryNode) => (
-    <TouchableOpacity
-      key={node.id}
-      style={[
-        styles.nodeCard,
-        node.isSelected && styles.nodeCardSelected,
-        node.isFixed && styles.nodeCardFixed
-      ]}
-      onPress={() => toggleNode(dayId, node.id)}
-      disabled={node.isFixed}
-      activeOpacity={0.7}
-    >
-      <View style={styles.nodeTimeContainer}>
-        <Text style={styles.nodeTime}>{node.time}</Text>
-        <View style={{ width: 2, flex: 1, backgroundColor: theme.border, marginVertical: 4 }} />
+    <View key={node.id} style={styles.mustHaveCard}>
+      <View style={styles.cardHeader}>
+        <View style={styles.timeTag}>
+          <Text style={styles.timeText}>{node.time}</Text>
+        </View>
+        <Text style={styles.durationText}>{node.duration}</Text>
       </View>
-      <View style={styles.nodeContent}>
-        <Text style={styles.nodeDescription}>{node.description}</Text>
-        <Text style={styles.nodeDetails}>{node.type} • {node.duration}</Text>
-      </View>
-      <View style={styles.nodeAction}>
-        {node.isFixed ? (
-          <IconSymbol name="lock.fill" size={16} color={theme.tertiary} />
-        ) : (
-          <IconSymbol 
-            name={node.isSelected ? "checkmark.circle.fill" : "circle"} 
-            size={24} 
-            color={node.isSelected ? theme.accent : theme.tertiary} 
-          />
-        )}
-      </View>
-    </TouchableOpacity>
+      <Text style={styles.cardTitle}>{node.title}</Text>
+      {node.summary && <Text style={styles.cardSummary}>{node.summary}</Text>}
+    </View>
   );
+
+  const renderOptionalItem = (dayId: string, groupId: string, node: ItineraryNode) => {
+    if (node.isHidden) return null;
+
+    return (
+      <View
+        key={node.id}
+        style={[styles.optionalCard, node.isSelected && styles.optionalCardSelected]}
+      >
+        <View style={styles.optionalInfo}>
+          <Text style={styles.optionalTitle}>{node.title}</Text>
+          <Text style={styles.optionalDetails}>{node.time} • {node.duration}</Text>
+          {node.cost > 0 && (
+            <Text style={[styles.optionalDetails, { color: theme.accent, fontWeight: '700' }]}>
+              Cost: PKR {node.cost.toLocaleString()}
+            </Text>
+          )}
+        </View>
+        <View style={styles.activityActions}>
+          <TouchableOpacity 
+            style={[styles.addButton, node.isSelected && styles.addedButton]}
+            onPress={() => toggleSubItem(dayId, groupId, node.id)}
+          >
+            <Text style={node.isSelected ? styles.addedButtonText : styles.addButtonText}>
+              {node.isSelected ? 'Added' : 'Add'}
+            </Text>
+          </TouchableOpacity>
+          
+          {!node.isSelected && (
+            <TouchableOpacity 
+              style={styles.skipButton}
+              onPress={() => hideSubItem(dayId, groupId, node.id)}
+            >
+              <Text style={styles.skipButtonText}>Skip</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      </View>
+    );
+  };
 
   const renderStayOption = (dayId: string, stay: StayOption, isSelected: boolean) => (
     <TouchableOpacity
@@ -120,17 +224,28 @@ export default function ItineraryComponent() {
       onPress={() => selectStay(dayId, stay.id)}
       activeOpacity={0.8}
     >
-      <Text style={styles.stayLevel}>{stay.level}</Text>
-      <Text style={styles.stayName} numberOfLines={1}>{stay.name}</Text>
-      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Text style={styles.stayCost}>PKR {stay.cost.toLocaleString()}</Text>
-        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+      {stay.image && <Image source={{ uri: stay.image }} style={styles.stayImage} />}
+      <View style={styles.stayInfo}>
+        <Text style={styles.stayName} numberOfLines={1}>{stay.name}</Text>
+        <Text style={styles.stayPrice}>PKR {stay.cost.toLocaleString()}</Text>
+        <View style={styles.ratingContainer}>
           <IconSymbol name="star.fill" size={10} color="#f59e0b" />
-          <Text style={{ fontSize: 10, color: theme.tertiary, marginLeft: 2 }}>{stay.rating}</Text>
+          <Text style={styles.ratingText}>{stay.rating}</Text>
         </View>
       </View>
     </TouchableOpacity>
   );
+
+  const openMenu = (dayId: string, groupId: string, event: any) => {
+    const { pageX, pageY } = event.nativeEvent;
+    
+    setMenuConfig({ 
+      dayId, 
+      groupId, 
+      x: pageX - 130, // Narrower menu
+      y: pageY + 10 
+    });
+  };
 
   if (loading) {
     return (
@@ -145,52 +260,110 @@ export default function ItineraryComponent() {
       <View style={styles.header}>
         <Image source={require('@/assets/images/logo.png')} style={styles.logo} />
         <TouchableOpacity style={styles.saveButton}>
-          <Text style={styles.saveButtonText}>Save and track Plan</Text>
+          <Text style={styles.saveButtonText}>Save and Track</Text>
         </TouchableOpacity>
       </View>
 
-      <ScrollView contentContainerStyle={{ paddingBottom: 120 }} showsVerticalScrollIndicator={false}>
-        {itinerary?.days.map(day => (
-          <View key={day.id} style={styles.dayContainer}>
-            <Text style={styles.dayTitle}>Day {day.dayNumber}</Text>
-            
-            {/* Activities/Nodes */}
-            {day.nodes.map(node => renderNode(day.id, node))}
-
-            {/* Hotel Choices */}
-            <View style={styles.staySection}>
-              <Text style={[styles.label, { marginBottom: 12, marginLeft: 4 }]}>Stay Options</Text>
-              <ScrollView 
-                horizontal 
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.stayScroll}
+      <ScrollView contentContainerStyle={{ paddingBottom: 160 }} showsVerticalScrollIndicator={false}>
+        {itinerary?.days.map(day => {
+          const isCollapsed = collapsedDays[day.id];
+          
+          return (
+            <View key={day.id} style={styles.dayContainer}>
+              <TouchableOpacity 
+                style={styles.dayHeader} 
+                onPress={() => toggleDay(day.id)}
+                activeOpacity={0.7}
               >
-                {day.stayOptions.map(stay => 
-                  renderStayOption(day.id, stay, day.selectedStayId === stay.id)
-                )}
-              </ScrollView>
+                <View style={styles.dayTitleContainer}>
+                  <Text style={styles.dayTitle}>Day {day.dayNumber}</Text>
+                  <Text style={styles.dayDate}>{day.date}</Text>
+                </View>
+                <IconSymbol 
+                  name={isCollapsed ? "chevron.down" : "chevron.up"} 
+                  size={20} 
+                  color={theme.tertiary} 
+                />
+              </TouchableOpacity>
+
+              {!isCollapsed && (
+                <View style={styles.dayContent}>
+                  {day.nodes.map((node) => {
+                    if (node.type === 'ActivityGroup') {
+                      return (
+                        <View key={node.id}>
+                          <View style={styles.sectionHeader}>
+                            <Text style={styles.sectionTitle}>{node.title || 'Activities'}</Text>
+                            <TouchableOpacity onPress={(e) => openMenu(day.id, node.id, e)}>
+                              <IconSymbol name="ellipsis" size={24} color={theme.primary} />
+                            </TouchableOpacity>
+                          </View>
+                          {node.items?.map(item => renderOptionalItem(day.id, node.id, item))}
+                        </View>
+                      );
+                    }
+                    return renderNode(day.id, node);
+                  })}
+
+                  <Text style={styles.sectionTitle}>Stay Options</Text>
+                  <ScrollView 
+                    horizontal 
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={{ paddingBottom: 8 }}
+                  >
+                    {day.stayOptions.map(stay => 
+                      renderStayOption(day.id, stay, day.selectedStayId === stay.id)
+                    )}
+                  </ScrollView>
+                </View>
+              )}
             </View>
-          </View>
-        ))}
+          );
+        })}
       </ScrollView>
 
-      {/* Floating Cost Bar */}
+      <Modal
+        visible={!!menuConfig}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setMenuConfig(null)}
+      >
+        <TouchableWithoutFeedback onPress={() => setMenuConfig(null)}>
+          <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0)' }}>
+            {menuConfig && (
+              <View 
+                style={[
+                  styles.dropdownMenu, 
+                  { 
+                    position: 'absolute', 
+                    top: menuConfig.y, 
+                    left: menuConfig.x,
+                    width: 140, // More compact width
+                    padding: 4, // Tighter padding
+                  }
+                ]}
+              >
+                <TouchableOpacity 
+                  style={[styles.dropdownItem, { padding: 8 }]} // More compact item
+                  onPress={() => resetActivityGroup(menuConfig.dayId, menuConfig.groupId)}
+                >
+                  <Text style={[styles.dropdownText, { marginLeft: 0 }]}>Reset Activities</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+          </View>
+        </TouchableWithoutFeedback>
+      </Modal>
+
       <View style={styles.costBar}>
         <View>
           <Text style={styles.costLabel}>Total Estimated Expense</Text>
           <Text style={styles.costValue}>PKR {totalCost.toLocaleString()}</Text>
         </View>
-        <IconSymbol name="arrow.right.circle.fill" size={40} color={theme.accent} />
+        <TouchableOpacity activeOpacity={0.8}>
+          <IconSymbol name="arrow.right.circle.fill" size={48} color={theme.accent} />
+        </TouchableOpacity>
       </View>
     </SafeAreaView>
   );
 }
-
-const styles_extra = {
-  label: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#334155',
-    textTransform: 'uppercase',
-  }
-};
