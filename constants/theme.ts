@@ -1,8 +1,3 @@
-/**
- * Below are the colors that are used in the app. The colors are defined in the light and dark mode.
- * There are many other ways to style your app. For example, [Nativewind](https://www.nativewind.dev/), [Tamagui](https://tamagui.dev/), [unistyles](https://reactnativeunistyles.vercel.app), etc.
- */
-
 import { Platform } from 'react-native';
 
 const tintColorLight = '#0a7ea4';
@@ -57,27 +52,38 @@ export const Colors = {
   },
 };
 
+/**
+ * Premium Typography System
+ * Headers: Outfit (Geometric, Modern, Premium)
+ * Body/UI: Inter (High readability, Clean, SaaS standard)
+ */
+export const Typography = {
+  header: {
+    regular: 'Outfit-Regular',
+    medium: 'Outfit-Medium',
+    semiBold: 'Outfit-SemiBold',
+    bold: 'Outfit-Bold',
+    extraBold: 'Outfit-ExtraBold',
+  },
+  body: {
+    regular: 'Inter-Regular',
+    medium: 'Inter-Medium',
+    semiBold: 'Inter-SemiBold',
+    bold: 'Inter-Bold',
+  }
+};
+
 export const Fonts = Platform.select({
   ios: {
-    /** iOS `UIFontDescriptorSystemDesignDefault` */
-    sans: 'system-ui',
-    /** iOS `UIFontDescriptorSystemDesignSerif` */
+    sans: 'Inter-Regular',
     serif: 'ui-serif',
-    /** iOS `UIFontDescriptorSystemDesignRounded` */
-    rounded: 'ui-rounded',
-    /** iOS `UIFontDescriptorSystemDesignMonospaced` */
+    rounded: 'Outfit-Regular',
     mono: 'ui-monospace',
   },
   default: {
-    sans: 'normal',
+    sans: 'Inter-Regular',
     serif: 'serif',
-    rounded: 'normal',
+    rounded: 'Outfit-Regular',
     mono: 'monospace',
-  },
-  web: {
-    sans: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
-    serif: "Georgia, 'Times New Roman', serif",
-    rounded: "'SF Pro Rounded', 'Hiragino Maru Gothic ProN', Meiryo, 'MS PGothic', sans-serif",
-    mono: "SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace",
   },
 });

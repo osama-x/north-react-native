@@ -8,6 +8,9 @@ import {
   FlatList,
   ActivityIndicator,
   SafeAreaView,
+  Modal,
+  Share,
+  Platform,
 } from 'react-native';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { IconSymbol } from '@/components/ui/icon-symbol';
@@ -26,6 +29,8 @@ export default function UpdatesComponent() {
   const [roads, setRoads] = useState<RoadStatus[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedTag, setSelectedTag] = useState('All');
+  
+  const [selectedNews, setSelectedNews] = useState<NewsItem | null>(null);
 
   useEffect(() => {
     fetchData();
@@ -35,7 +40,7 @@ export default function UpdatesComponent() {
     setLoading(true);
     const [newsData, roadsData] = await Promise.all([
       UpdatesService.getNews(),
-      UpdatesService.getRoadStatus(),
+      UpdatesService.getRoads(),
     ]);
     setNews(newsData);
     setRoads(roadsData);
@@ -45,6 +50,17 @@ export default function UpdatesComponent() {
   const handleViewChange = (view: UpdateView) => {
     setActiveView(view);
     setSelectedTag('All');
+  };
+
+  const handleShare = async (item: NewsItem) => {
+    try {
+      await Share.share({
+        title: item.title,
+        message: `${item.title}\n\n${item.summary}\n\nRead more in Markhorr app.`,
+      });
+    } catch (error) {
+      console.log('Error sharing:', error);
+    }
   };
 
   const allTags = useMemo(() => {
@@ -65,22 +81,37 @@ export default function UpdatesComponent() {
     return roads.filter((item) => item.tags.includes(selectedTag));
   }, [roads, selectedTag]);
 
-  const renderNewsItem = ({ item }: { item: NewsItem }) => (
-    <TouchableOpacity style={styles.newsCard} activeOpacity={0.7}>
-      <Text style={styles.newsDate}>{item.dateTime}</Text>
-      <Text style={styles.newsTitle}>{item.title}</Text>
-      <Text style={styles.newsContent} numberOfLines={3}>
-        {item.content}
-      </Text>
-      <View style={styles.newsTagsRow}>
-        {item.tags.map((tag) => (
-          <Text key={tag} style={styles.newsTag}>
-            #{tag}
-          </Text>
-        ))}
-      </View>
-    </TouchableOpacity>
-  );
+  const renderNewsItem = ({ item }: { item: NewsItem }) => {
+    const hasThumbnail = item.thumbnail && item.thumbnail.length > 0;
+    
+    return (
+      <TouchableOpacity 
+        style={styles.newsCard} 
+        activeOpacity={0.7}
+        onPress={() => setSelectedNews(item)}
+      >
+        <View style={styles.newsRow}>
+          {hasThumbnail && (
+            <Image source={{ uri: item.thumbnail }} style={styles.thumbnail} />
+          )}
+          <View style={[styles.newsInfo, !hasThumbnail && { marginLeft: 0 }]}>
+            <Text style={styles.newsDate}>{item.dateTime}</Text>
+            <Text style={styles.newsTitle} numberOfLines={2}>{item.title}</Text>
+            <Text style={styles.newsSummary} numberOfLines={hasThumbnail ? 2 : 4}>
+              {item.summary || item.content}
+            </Text>
+          </View>
+        </View>
+        <View style={styles.newsTagsRow}>
+          {item.tags.map((tag) => (
+            <Text key={tag} style={styles.newsTag}>
+              #{tag}
+            </Text>
+          ))}
+        </View>
+      </TouchableOpacity>
+    );
+  };
 
   const renderRoadItem = ({ item }: { item: RoadStatus }) => {
     const statusColor =
@@ -110,7 +141,7 @@ export default function UpdatesComponent() {
           <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center' }}>
             <IconSymbol name="clock.fill" size={12} color={theme.tertiary} />
             <Text style={[styles.lastUpdated, { marginLeft: 4 }]}>
-              Last updated: {item.lastUpdated}
+              {item.lastUpdated}
             </Text>
           </View>
           <View style={styles.newsTagsRow}>
@@ -223,6 +254,52 @@ export default function UpdatesComponent() {
           }
         />
       )}
+
+      {/* Detail Modal */}
+      <Modal
+        visible={!!selectedNews}
+        animationType="slide"
+        onRequestClose={() => setSelectedNews(null)}
+      >
+        {selectedNews && (
+          <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
+            <View style={styles.detailHeader}>
+              <TouchableOpacity onPress={() => setSelectedNews(null)} style={styles.detailBackButton}>
+                <IconSymbol name="chevron.left" size={28} color={theme.primary} />
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => handleShare(selectedNews)} style={styles.detailShareButton}>
+                <IconSymbol name="paperplane.fill" size={24} color={theme.primary} />
+              </TouchableOpacity>
+            </View>
+            
+            <ScrollView showsVerticalScrollIndicator={false}>
+              {selectedNews.image && selectedNews.image.length > 0 && (
+                <Image source={{ uri: selectedNews.image }} style={styles.detailImage} />
+              )}
+              <View style={styles.detailContentContainer}>
+                <Text style={styles.detailDate}>{selectedNews.dateTime}</Text>
+                <Text style={styles.detailTitle}>{selectedNews.title}</Text>
+                
+                <View style={styles.detailTagsRow}>
+                  {selectedNews.tags.map(tag => (
+                    <View key={tag} style={styles.detailTagBadge}>
+                      <Text style={styles.detailTagText}>#{tag}</Text>
+                    </View>
+                  ))}
+                </View>
+
+                {selectedNews.summary && (
+                  <View style={styles.summaryBox}>
+                    <Text style={styles.summaryText}>{selectedNews.summary}</Text>
+                  </View>
+                )}
+
+                <Text style={styles.fullContentText}>{selectedNews.content}</Text>
+              </View>
+            </ScrollView>
+          </SafeAreaView>
+        )}
+      </Modal>
     </SafeAreaView>
   );
 }

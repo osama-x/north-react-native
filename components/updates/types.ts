@@ -2,8 +2,11 @@ export interface NewsItem {
   id: string;
   dateTime: string;
   title: string;
+  summary: string;
   content: string;
   tags: string[];
+  thumbnail?: string;
+  image?: string;
 }
 
 export interface RoadStatus {
@@ -13,6 +16,7 @@ export interface RoadStatus {
   lastUpdated: string;
   details: string;
   tags: string[];
+  thumbnail?: string;
 }
 
 export type UpdateView = 'News' | 'Roads';

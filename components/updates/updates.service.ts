@@ -1,100 +1,72 @@
-import { Config } from '@/constants/config';
 import { NewsItem, RoadStatus } from './types';
 
 const DUMMY_NEWS: NewsItem[] = [
   {
-    id: '1',
-    dateTime: '2024-04-28 10:30 AM',
-    title: 'Cherry Blossom Season in Hunza Valley',
-    content: 'The cherry blossoms are in full bloom across Hunza and Nagar valleys. Tourists are advised to book stays in advance as hotels are reaching capacity.',
-    tags: ['Hunza', 'Tourism', 'Nature'],
+    id: 'n1',
+    dateTime: '2 hrs ago',
+    title: 'Snowfall Alert: Lowari Tunnel to Chitral',
+    summary: 'Heavy snowfall expected in the next 24 hours. Travelers advised to use snow chains.',
+    content: 'The meteorological department has issued a high-level alert for the Lowari Tunnel and surrounding areas. Expect up to 2 feet of snow. Road clearance teams are on standby, but visibility is low. Essential travel only is recommended for the next two days.',
+    tags: ['Weather', 'Chitral', 'Alert'],
+    thumbnail: 'https://images.unsplash.com/photo-1548574505-5e239809ee19?w=200',
+    image: 'https://images.unsplash.com/photo-1548574505-5e239809ee19?w=800',
   },
   {
-    id: '2',
-    dateTime: '2024-04-27 02:15 PM',
-    title: 'New Flight Route to Skardu Announced',
-    content: 'PIA has announced additional weekly flights from Karachi to Skardu to cater to the increasing summer rush.',
-    tags: ['Skardu', 'Travel', 'Aviation'],
+    id: 'n2',
+    dateTime: '5 hrs ago',
+    title: 'New Luxury Resort Opens in Skardu',
+    summary: 'The Shangri-La Pearl offers panoramic views of the Kachura Lake and high-end amenities.',
+    content: 'Tourism in Skardu gets a major boost with the opening of Shangri-La Pearl. The resort features 50 suites, an infinity pool overlooking the lake, and world-class dining. Bookings are now open for the summer season starting June.',
+    tags: ['Tourism', 'Skardu', 'Luxury'],
+    thumbnail: 'https://images.unsplash.com/photo-1590523277543-a94d2e4eb00b?w=200',
+    image: 'https://images.unsplash.com/photo-1590523277543-a94d2e4eb00b?w=800',
   },
   {
-    id: '3',
-    dateTime: '2024-04-26 09:00 AM',
-    title: 'Kalam Festival Dates Finalized',
-    content: 'The annual Kalam Summer Festival will be held from July 15th to July 20th, featuring local music, sports, and food stalls.',
-    tags: ['Kalam', 'Festival', 'Culture'],
-  },
-  {
-    id: '4',
-    dateTime: '2024-04-25 11:45 AM',
-    title: 'Sustainable Tourism Initiative in Chitral',
-    content: 'A new community-led project has been launched in Chitral to promote eco-friendly trekking and waste management.',
-    tags: ['Chitral', 'Eco-Tourism', 'Sustainability'],
-  },
+    id: 'n3',
+    dateTime: '1 day ago',
+    title: 'Karakoram Highway Expansion Complete',
+    summary: 'The section between Gilgit and Hunza is now a dual carriageway, significantly reducing travel time for commuters and tourists alike.',
+    content: 'The multi-year project to expand the KKH is finally complete. The new dual carriageway significantly improves safety and reduces the drive from Gilgit to Hunza by 45 minutes. Expect smooth roads and improved signage.',
+    tags: ['Roads', 'KKH', 'Infrastructure'],
+    // REMOVED THUMBNAIL TO TEST NO-IMAGE SCENARIO
+  }
 ];
 
 const DUMMY_ROADS: RoadStatus[] = [
   {
-    id: '1',
-    location: 'Karakoram Highway (KKH)',
-    status: 'Open',
-    lastUpdated: '2 hours ago',
-    details: 'Road is clear. Traffic moving normally between Besham and Chilas.',
-    tags: ['KKH', 'Besham', 'Chilas'],
+    id: 'r1',
+    location: 'Lowari Tunnel',
+    status: 'Caution',
+    lastUpdated: '15 mins ago',
+    details: 'One-way traffic due to maintenance. Expect 30 min delay.',
+    tags: ['N45', 'Tunnel'],
+    thumbnail: 'https://images.unsplash.com/photo-1476820865390-c52aeebb9891?w=200',
   },
   {
-    id: '2',
+    id: 'r2',
     location: 'Babusar Top',
     status: 'Closed',
-    lastUpdated: '1 day ago',
-    details: 'Closed due to heavy snow accumulation. Expected to open by late May.',
-    tags: ['Babusar', 'Naran', 'Snow'],
+    lastUpdated: '1 hr ago',
+    details: 'Closed for winter. Will reopen in June 2026.',
+    tags: ['N15', 'HighPass'],
+    // NO IMAGE
   },
   {
-    id: '3',
-    location: 'Lowari Tunnel',
+    id: 'r3',
+    location: 'Gilgit-Skardu Road',
     status: 'Open',
-    lastUpdated: '30 mins ago',
-    details: 'Operational for all types of vehicles. No major delays reported.',
-    tags: ['Chitral', 'Dir', 'Tunnel'],
-  },
-  {
-    id: '4',
-    location: 'Naran-Kaghan Road',
-    status: 'Caution',
-    lastUpdated: '5 hours ago',
-    details: 'Open up to Naran. Road work in progress near Kaghan; expect minor delays.',
-    tags: ['Naran', 'Kaghan', 'Construction'],
-  },
+    lastUpdated: '45 mins ago',
+    details: 'Road clear. Smooth traffic flow.',
+    tags: ['S1', 'Skardu'],
+    thumbnail: 'https://images.unsplash.com/photo-1519681393784-d120267933ba?w=200',
+  }
 ];
 
 export const UpdatesService = {
   getNews: async (): Promise<NewsItem[]> => {
-    if (Config.USE_API) {
-      try {
-        const response = await fetch(`${Config.API_BASE_URL}/news`);
-        return await response.json();
-      } catch (error) {
-        console.error('Error fetching news:', error);
-        return DUMMY_NEWS; // Fallback
-      }
-    }
-    return new Promise((resolve) => {
-      setTimeout(() => resolve(DUMMY_NEWS), 500); // Simulate network delay
-    });
+    return new Promise((resolve) => setTimeout(() => resolve(DUMMY_NEWS), 800));
   },
-
-  getRoadStatus: async (): Promise<RoadStatus[]> => {
-    if (Config.USE_API) {
-      try {
-        const response = await fetch(`${Config.API_BASE_URL}/roads`);
-        return await response.json();
-      } catch (error) {
-        console.error('Error fetching roads:', error);
-        return DUMMY_ROADS; // Fallback
-      }
-    }
-    return new Promise((resolve) => {
-      setTimeout(() => resolve(DUMMY_ROADS), 500);
-    });
-  },
+  getRoads: async (): Promise<RoadStatus[]> => {
+    return new Promise((resolve) => setTimeout(() => resolve(DUMMY_ROADS), 800));
+  }
 };
