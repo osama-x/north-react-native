@@ -2,7 +2,7 @@ import React from 'react';
 import { StyleSheet, View, Text, TouchableOpacity, SafeAreaView, Dimensions } from 'react-native';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
-import { Colors } from '@/constants/theme';
+import { Colors, Typography } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { StatusBar } from 'expo-status-bar';
 
@@ -79,10 +79,10 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   tagline: {
+    fontFamily: Typography.body.medium,
     fontSize: 18,
     color: 'rgba(255, 255, 255, 0.9)',
     textAlign: 'center',
-    fontWeight: '500',
     maxWidth: width * 0.6,
     lineHeight: 24,
   },
@@ -108,9 +108,9 @@ const styles = StyleSheet.create({
     borderColor: '#ffffff',
   },
   primaryButtonText: {
+    fontFamily: Typography.body.bold,
     color: '#ffffff',
     fontSize: 18,
-    fontWeight: '700',
     letterSpacing: 0.5,
   },
   secondaryButton: {
@@ -118,17 +118,17 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255, 255, 255, 0.6)',
   },
   secondaryButtonText: {
+    fontFamily: Typography.body.semiBold,
     color: '#ffffff',
     fontSize: 18,
-    fontWeight: '600',
     letterSpacing: 0.5,
   },
   skipButton: {
     padding: 12,
   },
   skipButtonText: {
+    fontFamily: Typography.body.medium,
     color: 'rgba(255, 255, 255, 0.8)',
     fontSize: 16,
-    fontWeight: '500',
   },
 });

@@ -3,7 +3,7 @@ import { View, Text, Animated, Easing } from 'react-native';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { createStyles } from './loading.styles';
-import { Colors } from '@/constants/theme';
+import { Colors, Typography } from '@/constants/theme';
 
 interface Step {
   id: number;
@@ -35,23 +35,23 @@ export default function LoadingSimulationComponent({ onComplete }: Props) {
     Animated.loop(
       Animated.timing(spinValue, {
         toValue: 1,
-        duration: 1000,
+        duration: 800,
         easing: Easing.linear,
         useNativeDriver: true,
       })
     ).start();
 
-    // Step progression simulation
+    // Step progression simulation - Reduced from 1500ms to 800ms for snappier feel
     const interval = setInterval(() => {
       setCurrentStep((prev) => {
         if (prev >= STEPS.length - 1) {
           clearInterval(interval);
-          setTimeout(onComplete, 1000);
+          setTimeout(onComplete, 500); // Reduced final wait
           return prev;
         }
         return prev + 1;
       });
-    }, 1500);
+    }, 800);
 
     return () => clearInterval(interval);
   }, []);
@@ -73,7 +73,7 @@ export default function LoadingSimulationComponent({ onComplete }: Props) {
           isActive && styles.stepIconActive
         ]}>
           {isSuccess ? (
-            <IconSymbol name="checkmark" size={14} color="#ffffff" />
+            <IconSymbol name="checkmark.circle.fill" size={14} color="#ffffff" />
           ) : isActive ? (
             <Animated.View style={{ transform: [{ rotate: spin }] }}>
               <IconSymbol name="arrow.triangle.2.circlepath" size={14} color={theme.accent} />
@@ -82,7 +82,8 @@ export default function LoadingSimulationComponent({ onComplete }: Props) {
         </View>
         <Text style={[
           styles.stepText,
-          isActive && styles.stepTextActive,
+          { fontFamily: Typography.body.medium },
+          isActive && [styles.stepTextActive, { fontFamily: Typography.body.bold }],
           isSuccess && styles.stepTextSuccess
         ]}>
           {step.text}
@@ -97,8 +98,8 @@ export default function LoadingSimulationComponent({ onComplete }: Props) {
         <IconSymbol name="sparkles" size={48} color={theme.accent} />
       </View>
       
-      <Text style={styles.title}>Crafting Your Itinerary</Text>
-      <Text style={styles.subtitle}>Our AI is planning the perfect trip for you</Text>
+      <Text style={[styles.title, { fontFamily: Typography.header.bold }]}>Crafting Your Itinerary</Text>
+      <Text style={[styles.subtitle, { fontFamily: Typography.body.medium }]}>Our AI is planning the perfect trip for you</Text>
 
       <View style={styles.stepsContainer}>
         {STEPS.map(renderStep)}

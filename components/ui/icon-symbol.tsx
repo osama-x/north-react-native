@@ -34,6 +34,9 @@ const MAPPING = {
   'star.fill': 'star',
   'arrow.right.circle.fill': 'arrow-circle-right',
   'ellipsis': 'more-horiz',
+  'magnifyingglass': 'search',
+  'clock.fill': 'access-time',
+  'newspaper.fill': 'article',
 } as IconMapping;
 
 /**
