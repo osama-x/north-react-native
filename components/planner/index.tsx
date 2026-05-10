@@ -18,6 +18,7 @@ import { FeaturedPlan } from './types';
 import { Colors } from '@/constants/theme';
 import { dbService, SavedPlanRecord } from '@/database';
 import { NorthHeader } from '@/components/ui/north-header';
+import { Config } from '@/constants/config';
 
 interface Props {
   onGeneratePress?: () => void;
@@ -35,6 +36,7 @@ export default function PlannerComponent({ onGeneratePress, onSavedPlanPress }: 
 
   // Dropdown menu state
   const [menuPlan, setMenuPlan] = useState<SavedPlanRecord | null>(null);
+  const [menuPosition, setMenuPosition] = useState(0);
 
   // Confirmation delete state
   const [pendingDeletePlan, setPendingDeletePlan] = useState<SavedPlanRecord | null>(null);
@@ -91,7 +93,11 @@ export default function PlannerComponent({ onGeneratePress, onSavedPlanPress }: 
       <TouchableOpacity
         style={{ padding: 8 }}
         hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-        onPress={() => setMenuPlan(plan)}
+        onPress={(e) => {
+          const { pageY } = e.nativeEvent;
+          setMenuPosition(pageY);
+          setMenuPlan(plan);
+        }}
       >
         <IconSymbol name="ellipsis" size={20} color={theme.secondary} />
       </TouchableOpacity>
@@ -134,16 +140,18 @@ export default function PlannerComponent({ onGeneratePress, onSavedPlanPress }: 
         </View>
 
         {/* Featured Plans Section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Featured plans</Text>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.featuredScroll}
-          >
-            {featured.map(renderFeaturedCard)}
-          </ScrollView>
-        </View>
+        {Config.FEATURES.ENABLE_FEATURED_PLANS && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Featured plans</Text>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.featuredScroll}
+            >
+              {featured.map(renderFeaturedCard)}
+            </ScrollView>
+          </View>
+        )}
 
         {/* Generate Button */}
         <TouchableOpacity
@@ -169,7 +177,7 @@ export default function PlannerComponent({ onGeneratePress, onSavedPlanPress }: 
             <TouchableWithoutFeedback onPress={() => {}}>
               <View style={{
                 position: 'absolute',
-                top: Platform.OS === 'ios' ? 160 : 130,
+                top: menuPosition + 10,
                 right: 20,
                 backgroundColor: colorScheme === 'dark' ? '#1e293b' : '#ffffff',
                 borderRadius: 16,

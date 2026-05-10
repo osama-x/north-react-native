@@ -16,8 +16,8 @@ import { createStyles } from './explore.styles';
 import { ExploreService } from './explore.service';
 import { FeaturedPlan, Destination } from './types';
 import { Colors } from '@/constants/theme';
-
 import { NorthHeader } from '@/components/ui/north-header';
+import { Config } from '@/constants/config';
 
 interface Props {
   onDestinationPress?: (id: string) => void;
@@ -65,17 +65,26 @@ export default function ExploreComponent({ onDestinationPress }: Props) {
     <TouchableOpacity 
       key={dest.id} 
       style={styles.destinationCard} 
-      activeOpacity={0.7}
+      activeOpacity={0.8}
       onPress={() => onDestinationPress?.(dest.id)}
     >
-      <View style={styles.destinationIconContainer}>
-        <IconSymbol name="mappin.and.ellipse" size={20} color={theme.accent} />
+      <Image 
+        source={{ uri: dest.image }} 
+        style={styles.destinationImage}
+        resizeMode="cover"
+      />
+      <View style={styles.imageOverlay}>
+        <IconSymbol name="star.fill" size={12} color="#f59e0b" />
+        <Text style={[styles.ratingText, { color: '#ffffff', marginLeft: 4 }]}>{dest.rating}</Text>
       </View>
-      <Text style={styles.destinationName}>{dest.name}</Text>
-      <Text style={styles.destinationRegion}>{dest.region}</Text>
-      <View style={styles.ratingRow}>
-        <IconSymbol name="star.fill" size={14} color="#f59e0b" />
-        <Text style={styles.ratingText}>{dest.rating}</Text>
+      
+      <View style={styles.destinationContent}>
+        <Text style={styles.destinationName}>{dest.name}</Text>
+        <Text style={styles.destinationTagline}>{dest.tagline}</Text>
+        <View style={styles.ratingRow}>
+          <IconSymbol name="mappin.and.ellipse" size={14} color={theme.accent} />
+          <Text style={[styles.ratingText, { color: theme.tertiary, fontSize: 13 }]}>{dest.region}</Text>
+        </View>
       </View>
     </TouchableOpacity>
   );
@@ -114,22 +123,24 @@ export default function ExploreComponent({ onDestinationPress }: Props) {
         )}
 
         {/* Featured Plans */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Featured plans</Text>
-            <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center' }}>
-              <Text style={styles.moreText}>more</Text>
-              <IconSymbol name="arrow.right" size={16} color={theme.accent} />
-            </TouchableOpacity>
+        {Config.FEATURES.ENABLE_FEATURED_PLANS && (
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Featured plans</Text>
+              <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <Text style={styles.moreText}>more</Text>
+                <IconSymbol name="arrow.right" size={16} color={theme.accent} />
+              </TouchableOpacity>
+            </View>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.planScroll}
+            >
+              {plans.map(renderPlanCard)}
+            </ScrollView>
           </View>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.planScroll}
-          >
-            {plans.map(renderPlanCard)}
-          </ScrollView>
-        </View>
+        )}
 
         {/* Destinations */}
         <View style={styles.section}>

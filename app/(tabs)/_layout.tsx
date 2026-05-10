@@ -28,6 +28,11 @@ const TABS_CONFIG = [
     title: 'Stays',
     icon: 'bed.double.fill' as const,
   }] : []),
+  {
+    name: 'profile',
+    title: 'Profile',
+    icon: 'person.fill' as const,
+  },
 ];
 
 export default function TabLayout() {

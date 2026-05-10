@@ -14,7 +14,7 @@ type PlanView = 'list' | 'config' | 'loading' | 'final' | 'save' | 'viewSaved';
 
 export default function PlanScreen() {
   const navigation = useNavigation();
-  const [viewStack, setViewStack] = useState<PlanView[]>(['list']);
+  const [viewStack, setViewStack] = useState<PlanView[]>(['config']);
   const view = viewStack[viewStack.length - 1];
   
   const [config, setConfig] = useState<any>(null);
@@ -35,7 +35,7 @@ export default function PlanScreen() {
   }, [viewStack]);
 
   const resetToMain = useCallback(() => {
-    setViewStack(['list']);
+    setViewStack(['config']);
     setConfig(null);
     setTotalCost(0);
     setCurrentItinerary(null);
@@ -55,12 +55,12 @@ export default function PlanScreen() {
   useEffect(() => {
     const unsubscribe = navigation.addListener('tabPress', (e) => {
       // ONLY intercept if we are ALREADY focused on this tab (re-press)
-      if (navigation.isFocused() && view !== 'list') {
+      if (navigation.isFocused() && view !== 'config') {
         e.preventDefault();
 
         Alert.alert(
           'Discard Progress?',
-          'Are you sure you want to discard your current progress and return to the main list?',
+          'Are you sure you want to discard your current progress and return to the start?',
           [
             { text: 'Cancel', style: 'cancel' },
             { 
@@ -79,7 +79,6 @@ export default function PlanScreen() {
   if (view === 'config') {
     return (
       <CreatePlanComponent 
-        onBack={popView} 
         onContinue={(data) => {
           setConfig(data);
           pushView('loading');
@@ -144,12 +143,12 @@ export default function PlanScreen() {
     );
   }
 
+  // Default view is always config now
   return (
-    <PlannerComponent 
-      onGeneratePress={() => pushView('config')} 
-      onSavedPlanPress={(planId) => {
-        setSelectedPlanId(planId);
-        pushView('viewSaved');
+    <CreatePlanComponent 
+      onContinue={(data) => {
+        setConfig(data);
+        pushView('loading');
       }}
     />
   );

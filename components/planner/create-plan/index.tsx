@@ -17,7 +17,7 @@ import { Colors } from '@/constants/theme';
 
 interface Props {
   initialDestination?: string;
-  onBack: () => void;
+  onBack?: () => void;
   onContinue: (config: TripConfig) => void;
 }
 
@@ -137,12 +137,14 @@ export default function CreatePlanComponent({ initialDestination, onBack, onCont
     <View style={styles.container}>
       <NorthHeader 
         leftElement={
-          <TouchableOpacity 
-            style={{ padding: 8, backgroundColor: 'rgba(255, 255, 255, 0.2)', borderRadius: 12 }} 
-            onPress={onBack}
-          >
-            <IconSymbol name="chevron.left" size={24} color="#ffffff" />
-          </TouchableOpacity>
+          onBack ? (
+            <TouchableOpacity 
+              style={{ padding: 8, backgroundColor: 'rgba(255, 255, 255, 0.2)', borderRadius: 12 }} 
+              onPress={onBack}
+            >
+              <IconSymbol name="chevron.left" size={24} color="#ffffff" />
+            </TouchableOpacity>
+          ) : undefined
         }
       />
       <ScrollView 
