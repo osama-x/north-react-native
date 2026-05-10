@@ -4,10 +4,12 @@ import PlannerComponent from '@/components/planner';
 import CreatePlanComponent from '@/components/planner/create-plan';
 import LoadingSimulationComponent from '@/components/planner/loading-simulation';
 import ItineraryComponent from '@/components/planner/itinerary';
+import SavePlanComponent from '@/components/planner/save-plan';
 
 export default function PlanScreen() {
-  const [view, setView] = useState<'list' | 'config' | 'loading' | 'final'>('list');
+  const [view, setView] = useState<'list' | 'config' | 'loading' | 'final' | 'save'>('list');
   const [config, setConfig] = useState<any>(null);
+  const [totalCost, setTotalCost] = useState(0);
 
   if (view === 'config') {
     return (
@@ -31,7 +33,25 @@ export default function PlanScreen() {
 
   if (view === 'final') {
     return (
-      <ItineraryComponent />
+      <ItineraryComponent 
+        onSave={(cost) => {
+          setTotalCost(cost);
+          setView('save');
+        }}
+      />
+    );
+  }
+
+  if (view === 'save') {
+    return (
+      <SavePlanComponent 
+        totalCost={totalCost}
+        onBack={() => setView('final')}
+        onSave={(tripName) => {
+          console.log('Saving trip:', tripName);
+          setView('list');
+        }}
+      />
     );
   }
 

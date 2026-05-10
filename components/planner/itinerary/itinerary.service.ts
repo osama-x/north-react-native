@@ -1,171 +1,439 @@
-import { TripItinerary, ItineraryDay, StayOption, ItineraryNode } from './types';
+import {
+  BackendFindRouteResponse,
+  ItineraryDay,
+  ItineraryNode,
+  StayOption,
+  TripItinerary
+} from './types';
 
 const DUMMY_STAYS: StayOption[] = [
-  { 
-    id: 's1', 
-    name: 'Standard Guest House', 
-    level: 'Budget', 
-    cost: 3500, 
+  {
+    id: 's1',
+    name: 'Standard Guest House',
+    level: 'Budget',
+    cost: 3500,
     rating: 3.5,
     image: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=400',
   },
-  { 
-    id: 's2', 
-    name: 'River View Hotel', 
-    level: 'Mid-range', 
-    cost: 8500, 
+  {
+    id: 's2',
+    name: 'River View Hotel',
+    level: 'Mid-range',
+    cost: 8500,
     rating: 4.2,
     image: 'https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?w=400',
   },
-  { 
-    id: 's3', 
-    name: 'Lux Continental', 
-    level: 'Luxury', 
-    cost: 18000, 
-    rating: 4.8,
-    image: 'https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=400',
-  },
 ];
 
-const createActivityGroup = (id: string, title: string, items: ItineraryNode[]): ItineraryNode => ({
-  id,
-  type: 'ActivityGroup',
-  title,
-  time: '',
-  description: '',
-  duration: '',
-  cost: 0,
-  isFixed: false,
-  isOptional: false,
-  isSelected: true,
-  items: JSON.parse(JSON.stringify(items)),
-  originalItems: JSON.parse(JSON.stringify(items)),
-});
-
-const DUMMY_ITINERARY: TripItinerary = {
-  id: 'it1',
-  title: 'Chitral Expedition',
-  days: [
-    {
-      id: 'd1',
-      dayNumber: 1,
-      date: '21st May, 2026',
-      nodes: [
-        { 
-          id: 'n1', 
-          type: 'Travel', 
-          time: '09:00 AM', 
-          title: 'Travel from Lahore -> Islamabad',
-          description: 'Departure via M2 Motorway', 
-          summary: 'A smooth drive through the salt range with scenic views.',
-          duration: '4 hrs', 
-          cost: 5000, 
-          isFixed: true, 
-          isOptional: false,
-          isSelected: true,
-        },
-        createActivityGroup('g1', 'Enroute Activities', [
-          { 
-            id: 'n1-s1', 
-            type: 'Stop', 
-            time: '11:00 AM', 
-            title: 'Stop at Bhera',
-            description: 'Refreshments and Rest', 
-            summary: 'Quick break for tea and snacks at Bhera service area.',
-            duration: '0.5-1 hr', 
-            cost: 1500, 
-            isFixed: false, 
-            isOptional: true,
-            isSelected: false 
-          },
-          { 
-            id: 'n1-s2', 
-            type: 'Stop', 
-            time: '12:30 PM', 
-            title: 'Kallar Kahar View',
-            description: 'Photography and Sightseeing', 
-            summary: 'Enjoy the panoramic view of the lake.',
-            duration: '0.5 hr', 
-            cost: 500, 
-            isFixed: false, 
-            isOptional: true,
-            isSelected: false 
-          },
-        ]),
-        { 
-          id: 'n4', 
-          type: 'Travel', 
-          time: '02:00 PM', 
-          title: 'Islamabad -> Chitral',
-          description: 'Flight to Chitral Valley', 
-          summary: 'Breathtaking aerial views of the Hindu Kush range.',
-          duration: '1 hr', 
-          cost: 12000, 
-          isFixed: true, 
-          isOptional: false,
-          isSelected: true,
-        },
-        createActivityGroup('g2', 'Chitral Activities', [
-          { 
-            id: 'n4-s1', 
-            type: 'Activity', 
-            time: '05:00 PM', 
-            title: 'Visit Chitral Bazaar',
-            description: 'Local Craft and Dinner', 
-            summary: 'Explore the traditional market and try local trout.',
-            duration: '2 hrs', 
-            cost: 2500, 
-            isFixed: false, 
-            isOptional: true,
-            isSelected: true 
-          },
-        ]),
-      ],
-      stayOptions: DUMMY_STAYS,
-      selectedStayId: 's2',
-    },
-    {
-      id: 'd2',
-      dayNumber: 2,
-      date: '22nd May, 2026',
-      nodes: [
-        { 
-          id: 'n6', 
-          type: 'Activity', 
-          time: '06:00 AM', 
-          title: 'Sunrise at Terich Mir',
-          description: 'Early morning peak views', 
-          summary: 'Experience the first light hitting the highest peak.',
-          duration: '2 hrs', 
-          cost: 0, 
-          isFixed: true, 
-          isOptional: false,
-          isSelected: true,
-        },
-        createActivityGroup('g3', 'Day 2 Sightseeing', [
-          { 
-            id: 'n6-s1', 
-            type: 'Activity', 
-            time: '10:00 AM', 
-            title: 'Shahi Mosque & Fort',
-            description: 'Historical Sightseeing', 
-            summary: 'Guided tour of the 17th century mosque.',
-            duration: '1.5 hrs', 
-            cost: 1000, 
-            isFixed: false, 
-            isOptional: true,
-            isSelected: false 
-          },
-        ]),
-      ],
-      stayOptions: DUMMY_STAYS,
-      selectedStayId: 's1',
-    },
-  ],
+export const formatDuration = (minutes: number): string => {
+  const hours = Math.floor(minutes / 60);
+  const mins = minutes % 60;
+  if (hours > 0 && mins > 0) return `${hours} hr ${mins} min`;
+  if (hours > 0) return `${hours} hr${hours > 1 ? 's' : ''}`;
+  return `${mins} min`;
 };
+
+export const formatTime = (totalMinutesPassed: number): string => {
+  const totalHours = Math.floor(totalMinutesPassed / 60);
+  const totalMins = totalMinutesPassed % 60;
+
+  const ampm = totalHours >= 12 && totalHours < 24 ? 'PM' : 'AM';
+  let formattedHour = totalHours % 12;
+  formattedHour = formattedHour ? formattedHour : 12;
+
+  const formattedMin = totalMins < 10 ? '0' + totalMins : totalMins;
+
+  return `${formattedHour}:${formattedMin} ${ampm}`;
+};
+
+export const transformBackendResponse = (response: BackendFindRouteResponse): TripItinerary => {
+  const startDate = new Date();
+
+  const days: ItineraryDay[] = response.days.map((dayData) => {
+    const departureTimeMin = 480; // Default 8:00 AM
+    let currentDayMinutes = departureTimeMin;
+    const nodes: ItineraryNode[] = [];
+
+    let currentGroupItems: ItineraryNode[] = [];
+
+    const flushGroup = () => {
+      if (currentGroupItems.length > 0) {
+        nodes.push({
+          id: `d${dayData.day}-g${nodes.length}`,
+          type: 'ActivityGroup',
+          title: 'Optional Activities',
+          time: currentGroupItems[0].time,
+          description: '',
+          duration: '',
+          cost: 0,
+          distance_km: 0,
+          timeRequiredMin: 0, // group itself doesn't have inherent time
+          isFixed: false,
+          isOptional: false,
+          isSelected: true,
+          items: currentGroupItems,
+          originalItems: JSON.parse(JSON.stringify(currentGroupItems)),
+        });
+        currentGroupItems = [];
+      }
+    };
+
+    dayData.activities.forEach((act, actIndex) => {
+      const timeStr = formatTime(currentDayMinutes);
+      const durStr = formatDuration(act.time_required_min);
+
+      const nodeTitle = act.type === 'travel' && act.from_location && act.to_location
+        ? `${act.from_location} to ${act.to_location}`
+        : act.title;
+
+      const node: ItineraryNode = {
+        id: `d${dayData.day}-n${actIndex}`,
+        type: act.type === 'travel' ? 'Travel' : 'Activity',
+        time: timeStr,
+        title: nodeTitle,
+        description: act.description || '',
+        duration: durStr,
+        cost: act.cost,
+        distance_km: act.distance_km,
+        difficulty: act.difficulty,
+        timeRequiredMin: act.time_required_min,
+        toLocation: act.to_location,
+        arrivalTime: formatTime(currentDayMinutes + act.time_required_min),
+        isFixed: !act.is_editable,
+        isOptional: act.is_editable,
+        isSelected: !act.is_editable,
+      };
+
+      if (act.is_editable) {
+        currentGroupItems.push(node);
+      } else {
+        flushGroup();
+        nodes.push(node);
+      }
+
+      currentDayMinutes += act.time_required_min;
+    });
+
+    flushGroup();
+
+    const currentDate = new Date(startDate);
+    currentDate.setDate(startDate.getDate() + dayData.day - 1);
+
+    return {
+      id: `day-${dayData.day}`,
+      dayNumber: dayData.day,
+      date: currentDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }),
+      departureTimeMin,
+      nodes,
+      stayOptions: DUMMY_STAYS, // Maintain mock stays for UI testing
+      selectedStayId: DUMMY_STAYS[0].id,
+    };
+  });
+
+  return {
+    id: 'generated-itinerary',
+    title: 'Custom Expedition',
+    days,
+  };
+};
+
+const DUMMY_BACKEND_RESPONSE: BackendFindRouteResponse = {
+  "status": "success",
+  "total_duration_hours": 40.33,
+  "total_distance_km": 1930,
+  "total_cost": 100,
+  "days": [
+    {
+      "day": 1,
+      "activities": [
+        {
+          "type": "travel",
+          "title": "Drive from Lahore to Islamabad",
+          "is_editable": false,
+          "description": null,
+          "from_location": "Lahore",
+          "to_location": "Islamabad",
+          "distance_km": 375,
+          "cost": 300,
+          "time_required_min": 280,
+          "difficulty": "normal"
+        },
+        {
+          "type": "travel",
+          "title": "Drive from Islamabad to Abbottabad",
+          "is_editable": false,
+          "description": null,
+          "from_location": "Islamabad",
+          "to_location": "Abbottabad",
+          "distance_km": 120,
+          "cost": 0,
+          "time_required_min": 150,
+          "difficulty": "normal"
+        },
+        {
+          "type": "activity",
+          "title": "Shimla Hill Walk",
+          "is_editable": true,
+          "description": "A popular local hill spot in Abbottabad offering panoramic views. An easy hike that has been a favorite for locals and travelers for decades.",
+          "from_location": "Abbottabad",
+          "to_location": "Abbottabad",
+          "distance_km": 0,
+          "cost": 0,
+          "time_required_min": 60,
+          "difficulty": "Easy"
+        }
+      ],
+      "driving_time_hours": 7.17,
+      "visited_locations": [
+      ]
+    },
+    {
+      "day": 2,
+      "activities": [
+        {
+          "type": "travel",
+          "title": "Drive from Abbottabad to Naran",
+          "is_editable": false,
+          "description": null,
+          "from_location": "Abbottabad",
+          "to_location": "Naran",
+          "distance_km": 120,
+          "cost": 0,
+          "time_required_min": 210,
+          "difficulty": "normal"
+        },
+        {
+          "type": "travel",
+          "title": "Drive from Naran to Chilas",
+          "is_editable": false,
+          "description": null,
+          "from_location": "Naran",
+          "to_location": "Chilas",
+          "distance_km": 115,
+          "cost": 0,
+          "time_required_min": 240,
+          "difficulty": "normal"
+        }
+      ],
+      "driving_time_hours": 7.5,
+      "visited_locations": [
+      ]
+    },
+    {
+      "day": 3,
+      "activities": [
+        {
+          "type": "travel",
+          "title": "Drive from Chilas to Gilgit",
+          "is_editable": false,
+          "description": null,
+          "from_location": "Chilas",
+          "to_location": "Gilgit",
+          "distance_km": 130,
+          "cost": 0,
+          "time_required_min": 180,
+          "difficulty": "normal"
+        },
+        {
+          "type": "travel",
+          "title": "Drive from Gilgit to Hunza",
+          "is_editable": false,
+          "description": null,
+          "from_location": "Gilgit",
+          "to_location": "Hunza",
+          "distance_km": 100,
+          "cost": 0,
+          "time_required_min": 150,
+          "difficulty": "normal"
+        }
+      ],
+      "driving_time_hours": 5.5,
+      "visited_locations": [
+      ]
+    },
+    {
+      "day": 4,
+      "activities": [
+        {
+          "type": "stay",
+          "title": "Stay and relax in Hunza",
+          "is_editable": true,
+          "description": null,
+          "from_location": "Hunza",
+          "to_location": "Hunza",
+          "distance_km": 0,
+          "cost": 0,
+          "time_required_min": 1440,
+          "difficulty": "normal"
+        }
+      ],
+      "driving_time_hours": 0.0,
+      "visited_locations": [
+      ]
+    },
+    {
+      "day": 5,
+      "activities": [
+        {
+          "type": "travel",
+          "title": "Drive from Hunza to Gilgit",
+          "is_editable": false,
+          "description": null,
+          "from_location": "Hunza",
+          "to_location": "Gilgit",
+          "distance_km": 100,
+          "cost": 0,
+          "time_required_min": 150,
+          "difficulty": "normal"
+        },
+        {
+          "type": "travel",
+          "title": "Drive from Gilgit to Chilas",
+          "is_editable": false,
+          "description": null,
+          "from_location": "Gilgit",
+          "to_location": "Chilas",
+          "distance_km": 130,
+          "cost": 0,
+          "time_required_min": 180,
+          "difficulty": "normal"
+        }
+      ],
+      "driving_time_hours": 5.5,
+      "visited_locations": [
+      ]
+    },
+    {
+      "day": 6,
+      "activities": [
+        {
+          "type": "travel",
+          "title": "Drive from Chilas to Naran",
+          "is_editable": false,
+          "description": null,
+          "from_location": "Chilas",
+          "to_location": "Naran",
+          "distance_km": 115,
+          "cost": 0,
+          "time_required_min": 240,
+          "difficulty": "normal"
+        },
+        {
+          "type": "travel",
+          "title": "Drive from Naran to Kaghan",
+          "is_editable": false,
+          "description": null,
+          "from_location": "Naran",
+          "to_location": "Kaghan",
+          "distance_km": 25,
+          "cost": 0,
+          "time_required_min": 50,
+          "difficulty": "normal"
+        },
+        {
+          "type": "travel",
+          "title": "Drive from Kaghan to Paras",
+          "is_editable": false,
+          "description": null,
+          "from_location": "Kaghan",
+          "to_location": "Paras",
+          "distance_km": 15,
+          "cost": 0,
+          "time_required_min": 30,
+          "difficulty": "normal"
+        },
+        {
+          "type": "travel",
+          "title": "Drive from Paras to Kiwai",
+          "is_editable": false,
+          "description": null,
+          "from_location": "Paras",
+          "to_location": "Kiwai",
+          "distance_km": 10,
+          "cost": 0,
+          "time_required_min": 20,
+          "difficulty": "normal"
+        },
+        {
+          "type": "travel",
+          "title": "Drive from Kiwai to Balakot",
+          "is_editable": false,
+          "description": null,
+          "from_location": "Kiwai",
+          "to_location": "Balakot",
+          "distance_km": 20,
+          "cost": 0,
+          "time_required_min": 40,
+          "difficulty": "normal"
+        },
+        {
+          "type": "travel",
+          "title": "Drive from Balakot to Mansehra",
+          "is_editable": false,
+          "description": null,
+          "from_location": "Balakot",
+          "to_location": "Mansehra",
+          "distance_km": 40,
+          "cost": 0,
+          "time_required_min": 60,
+          "difficulty": "normal"
+        },
+        {
+          "type": "activity",
+          "title": "Mansehra Public Park Leisure",
+          "is_editable": true,
+          "description": "A well-maintained park ideal for a relaxed afternoon walk. It serves as a central social hub for the local community and passing tourists.",
+          "from_location": "Mansehra",
+          "to_location": "Mansehra",
+          "distance_km": 0,
+          "cost": 100,
+          "time_required_min": 60,
+          "difficulty": "Easy"
+        }
+      ],
+      "driving_time_hours": 7.33,
+      "visited_locations": [
+      ]
+    },
+    {
+      "day": 7,
+      "activities": [
+        {
+          "type": "travel",
+          "title": "Drive from Mansehra to Islamabad",
+          "is_editable": false,
+          "description": null,
+          "from_location": "Mansehra",
+          "to_location": "Islamabad",
+          "distance_km": 140,
+          "cost": 0,
+          "time_required_min": 160,
+          "difficulty": "normal"
+        },
+        {
+          "type": "travel",
+          "title": "Drive from Islamabad to Lahore",
+          "is_editable": false,
+          "description": null,
+          "from_location": "Islamabad",
+          "to_location": "Lahore",
+          "distance_km": 375,
+          "cost": 0,
+          "time_required_min": 280,
+          "difficulty": "normal"
+        }
+      ],
+      "driving_time_hours": 7.33,
+      "visited_locations": [
+      ]
+    }
+  ],
+  "message": "Round trip generated for 7 days including 1 days of stay."
+}
+  ;
 
 export const ItineraryService = {
   getItinerary: async (config?: any): Promise<TripItinerary> => {
-    return new Promise((resolve) => setTimeout(() => resolve(DUMMY_ITINERARY), 500));
+    return new Promise((resolve) => setTimeout(() => resolve(transformBackendResponse(DUMMY_BACKEND_RESPONSE)), 500));
   }
 };

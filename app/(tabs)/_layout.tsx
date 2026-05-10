@@ -5,6 +5,7 @@ import { HapticTab } from '@/components/haptic-tab';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Config } from '@/constants/config';
 
 const TABS_CONFIG = [
   {
@@ -22,6 +23,11 @@ const TABS_CONFIG = [
     title: 'Plan',
     icon: 'calendar.fill' as const,
   },
+  ...(Config.FEATURES.ENABLE_STAYS ? [{
+    name: 'stays',
+    title: 'Stays',
+    icon: 'bed.double.fill' as const,
+  }] : []),
 ];
 
 export default function TabLayout() {
@@ -49,13 +55,16 @@ export default function TabLayout() {
           }}
         />
       ))}
-      {/* Explicitly hide stays if the file exists to ensure it doesn't show up in bottom nav */}
-      <Tabs.Screen
-        name="stays"
-        options={{
-          href: null,
-        }}
-      />
+      
+      {/* Explicitly hide stays if feature is disabled but file exists */}
+      {!Config.FEATURES.ENABLE_STAYS && (
+        <Tabs.Screen
+          name="stays"
+          options={{
+            href: null,
+          }}
+        />
+      )}
     </Tabs>
   );
 }

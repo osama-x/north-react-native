@@ -148,6 +148,17 @@ export const createStyles = (colorScheme: 'light' | 'dark') => {
       color: theme.tertiary,
       lineHeight: 18,
     },
+    arrivalNote: {
+      fontSize: 12,
+      color: theme.accent,
+      fontFamily: 'Inter_600SemiBold',
+      marginTop: 8,
+      backgroundColor: theme.accent + '10',
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      borderRadius: 6,
+      alignSelf: 'flex-start',
+    },
     // Optional Activity Card
     optionalCard: {
       backgroundColor: colorScheme === 'dark' ? 'rgba(255,255,255,0.05)' : '#ffffff',

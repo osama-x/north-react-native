@@ -15,6 +15,7 @@ import { DestinationDetailService } from './detail.service';
 import { DestinationDetail, StayOption } from './types';
 import { Colors } from '@/constants/theme';
 import { NewsItem } from '../updates/types';
+import { Config } from '@/constants/config';
 
 interface Props {
   destinationId: string;
@@ -134,19 +135,21 @@ export default function DestinationDetailComponent({ destinationId, onBack, onPl
           </View>
 
           {/* Stay Options Section */}
-          <View style={styles.section}>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-              <Text style={styles.sectionTitle}>Stay Options</Text>
-              <Text style={{ color: theme.tertiary, fontSize: 12 }}>Powered by Agoda</Text>
+          {Config.FEATURES.ENABLE_STAYS && (
+            <View style={styles.section}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                <Text style={styles.sectionTitle}>Stay Options</Text>
+                <Text style={{ color: theme.tertiary, fontSize: 12 }}>Powered by Agoda</Text>
+              </View>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.horizontalScroll}
+              >
+                {detail.stays.map(renderStayCard)}
+              </ScrollView>
             </View>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.horizontalScroll}
-            >
-              {detail.stays.map(renderStayCard)}
-            </ScrollView>
-          </View>
+          )}
 
           {/* Related News Section */}
           {detail.news.length > 0 && (

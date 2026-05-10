@@ -17,11 +17,13 @@ import {
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { createStyles } from './itinerary.styles';
-import { ItineraryService } from './itinerary.service';
+import { ItineraryService, formatTime } from './itinerary.service';
 import { TripItinerary, ItineraryDay, ItineraryNode, StayOption } from './types';
 import { Colors } from '@/constants/theme';
 
 import { NorthHeader } from '@/components/ui/north-header';
+import { Config } from '@/constants/config';
+import { Slider } from '@/components/ui/slider';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -29,7 +31,11 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
-export default function ItineraryComponent() {
+interface Props {
+  onSave?: (totalCost: number) => void;
+}
+
+export default function ItineraryComponent({ onSave }: Props) {
   const colorScheme = useColorScheme();
   const styles = useMemo(() => createStyles(colorScheme ?? 'light'), [colorScheme]);
   const theme = Colors[colorScheme ?? 'light'];
@@ -38,6 +44,7 @@ export default function ItineraryComponent() {
   const [loading, setLoading] = useState(true);
   const [collapsedDays, setCollapsedDays] = useState<Record<string, boolean>>({});
   const [menuConfig, setMenuConfig] = useState<{ dayId: string; groupId: string; x: number; y: number } | null>(null);
+  const [activeSliderDayId, setActiveSliderDayId] = useState<string | null>(null);
 
   useEffect(() => {
     loadData();
@@ -64,6 +71,56 @@ export default function ItineraryComponent() {
     }));
   };
 
+  const recalculateDayTimes = (day: ItineraryDay): ItineraryDay => {
+    let currentMin = day.departureTimeMin;
+    
+    const newNodes = day.nodes.map(node => {
+      if (node.type === 'ActivityGroup') {
+        const groupStartTime = formatTime(currentMin);
+        const newItems = node.items?.map(item => {
+          const itemNode = { 
+            ...item, 
+            time: formatTime(currentMin),
+            arrivalTime: formatTime(currentMin + (item.timeRequiredMin || 0))
+          };
+          if (item.isSelected && !item.isHidden) {
+            currentMin += item.timeRequiredMin || 0;
+          }
+          return itemNode;
+        });
+        return {
+          ...node,
+          time: groupStartTime,
+          items: newItems,
+        };
+      } else {
+        const newNode = { 
+          ...node, 
+          time: formatTime(currentMin),
+          arrivalTime: formatTime(currentMin + (node.timeRequiredMin || 0))
+        };
+        if (node.isSelected && !node.isHidden) {
+          currentMin += node.timeRequiredMin || 0;
+        }
+        return newNode;
+      }
+    });
+
+    return { ...day, nodes: newNodes };
+  };
+
+  const setDepartureTime = (dayId: string, timeMin: number) => {
+    if (!itinerary) return;
+    setItinerary({
+      ...itinerary,
+      days: itinerary.days.map(day => {
+        if (day.id !== dayId) return day;
+        const updatedDay = { ...day, departureTimeMin: timeMin };
+        return recalculateDayTimes(updatedDay);
+      })
+    });
+  };
+
   const toggleSubItem = (dayId: string, groupId: string, itemId: string) => {
     if (!itinerary) return;
     
@@ -71,7 +128,7 @@ export default function ItineraryComponent() {
       ...itinerary,
       days: itinerary.days.map(day => {
         if (day.id !== dayId) return day;
-        return {
+        const updatedDay = {
           ...day,
           nodes: day.nodes.map(node => {
             if (node.id !== groupId || !node.items) return node;
@@ -84,6 +141,7 @@ export default function ItineraryComponent() {
             };
           })
         };
+        return recalculateDayTimes(updatedDay);
       })
     });
   };
@@ -95,7 +153,7 @@ export default function ItineraryComponent() {
       ...itinerary,
       days: itinerary.days.map(day => {
         if (day.id !== dayId) return day;
-        return {
+        const updatedDay = {
           ...day,
           nodes: day.nodes.map(node => {
             if (node.id !== groupId || !node.items) return node;
@@ -108,6 +166,7 @@ export default function ItineraryComponent() {
             };
           })
         };
+        return recalculateDayTimes(updatedDay);
       })
     });
   };
@@ -120,7 +179,7 @@ export default function ItineraryComponent() {
       ...itinerary,
       days: itinerary.days.map(day => {
         if (day.id !== dayId) return day;
-        return {
+        const updatedDay = {
           ...day,
           nodes: day.nodes.map(node => {
             if (node.id !== groupId || !node.originalItems) return node;
@@ -130,6 +189,7 @@ export default function ItineraryComponent() {
             };
           })
         };
+        return recalculateDayTimes(updatedDay);
       })
     });
     setMenuConfig(null);
@@ -160,8 +220,10 @@ export default function ItineraryComponent() {
           });
         }
       });
-      const selectedStay = day.stayOptions.find(s => s.id === day.selectedStayId);
-      if (selectedStay) cost += selectedStay.cost;
+      if (Config.FEATURES.ENABLE_STAYS) {
+        const selectedStay = day.stayOptions.find(s => s.id === day.selectedStayId);
+        if (selectedStay) cost += selectedStay.cost;
+      }
     });
     return cost;
   }, [itinerary]);
@@ -176,6 +238,11 @@ export default function ItineraryComponent() {
       </View>
       <Text style={styles.cardTitle}>{node.title}</Text>
       {node.summary && <Text style={styles.cardSummary}>{node.summary}</Text>}
+      {node.type === 'Travel' && node.arrivalTime && node.toLocation && (
+        <Text style={styles.arrivalNote}>
+          You will arrive at {node.toLocation} at {node.arrivalTime}
+        </Text>
+      )}
     </View>
   );
 
@@ -193,6 +260,11 @@ export default function ItineraryComponent() {
           {node.cost > 0 && (
             <Text style={[styles.optionalDetails, { color: theme.accent, fontWeight: '700' }]}>
               Cost: PKR {node.cost.toLocaleString()}
+            </Text>
+          )}
+          {node.type === 'Travel' && node.arrivalTime && node.toLocation && (
+            <Text style={styles.arrivalNote}>
+              You will arrive at {node.toLocation} at {node.arrivalTime}
             </Text>
           )}
         </View>
@@ -261,7 +333,10 @@ export default function ItineraryComponent() {
     <View style={styles.container}>
       <NorthHeader 
         rightElement={
-          <TouchableOpacity style={styles.saveButton}>
+          <TouchableOpacity 
+            style={styles.saveButton}
+            onPress={() => onSave?.(totalCost)}
+          >
             <Text style={styles.saveButtonText}>Save and Track</Text>
           </TouchableOpacity>
         }
@@ -291,6 +366,34 @@ export default function ItineraryComponent() {
 
               {!isCollapsed && (
                 <View style={styles.dayContent}>
+                  <View style={{ marginBottom: 16, backgroundColor: 'rgba(46, 139, 88, 0.1)', borderRadius: 12, overflow: 'hidden' }}>
+                    <TouchableOpacity 
+                      style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 12 }}
+                      onPress={() => setActiveSliderDayId(activeSliderDayId === day.id ? null : day.id)}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={{ fontFamily: 'Inter_600SemiBold', fontSize: 14, color: theme.primary }}>Departure Time</Text>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                        <Text style={{ fontFamily: 'Inter_700Bold', fontSize: 14, color: theme.primary }}>
+                          {formatTime(day.departureTimeMin)}
+                        </Text>
+                        <IconSymbol name={activeSliderDayId === day.id ? "chevron.up" : "chevron.down"} size={16} color={theme.tertiary} />
+                      </View>
+                    </TouchableOpacity>
+                    
+                    {activeSliderDayId === day.id && (
+                      <View style={{ paddingHorizontal: 16, paddingBottom: 16 }}>
+                        <Slider 
+                          value={day.departureTimeMin} 
+                          min={0} 
+                          max={1410} // 11:30 PM max
+                          step={30} 
+                          onValueChange={(val) => setDepartureTime(day.id, val)}
+                        />
+                      </View>
+                    )}
+                  </View>
+
                   {day.nodes.map((node) => {
                     if (node.type === 'ActivityGroup') {
                       return (
@@ -308,16 +411,20 @@ export default function ItineraryComponent() {
                     return renderNode(day.id, node);
                   })}
 
-                  <Text style={styles.sectionTitle}>Stay Options</Text>
-                  <ScrollView 
-                    horizontal 
-                    showsHorizontalScrollIndicator={false}
-                    contentContainerStyle={{ paddingBottom: 8 }}
-                  >
-                    {day.stayOptions.map(stay => 
-                      renderStayOption(day.id, stay, day.selectedStayId === stay.id)
-                    )}
-                  </ScrollView>
+                  {Config.FEATURES.ENABLE_STAYS && (
+                    <>
+                      <Text style={styles.sectionTitle}>Stay Options</Text>
+                      <ScrollView 
+                        horizontal 
+                        showsHorizontalScrollIndicator={false}
+                        contentContainerStyle={{ paddingBottom: 8 }}
+                      >
+                        {day.stayOptions.map(stay => 
+                          renderStayOption(day.id, stay, day.selectedStayId === stay.id)
+                        )}
+                      </ScrollView>
+                    </>
+                  )}
                 </View>
               )}
             </View>
@@ -363,7 +470,10 @@ export default function ItineraryComponent() {
           <Text style={styles.costLabel}>Total Estimated Expense</Text>
           <Text style={styles.costValue}>PKR {totalCost.toLocaleString()}</Text>
         </View>
-        <TouchableOpacity activeOpacity={0.8}>
+        <TouchableOpacity 
+          activeOpacity={0.8}
+          onPress={() => onSave?.(totalCost)}
+        >
           <IconSymbol name="arrow.right.circle.fill" size={48} color={theme.accent} />
         </TouchableOpacity>
       </View>
