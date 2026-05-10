@@ -17,6 +17,8 @@ import { ExploreService } from './explore.service';
 import { FeaturedPlan, Destination } from './types';
 import { Colors } from '@/constants/theme';
 
+import { NorthHeader } from '@/components/ui/north-header';
+
 interface Props {
   onDestinationPress?: (id: string) => void;
 }
@@ -79,25 +81,21 @@ export default function ExploreComponent({ onDestinationPress }: Props) {
   );
 
   return (
-    <SafeAreaView style={styles.container}>
-      {/* Header Bar */}
-      <View style={styles.header}>
-        <Image
-          source={require('@/assets/images/logo.png')}
-          style={styles.logo}
-        />
-        <Text style={styles.headerTitle}>Explore</Text>
-        <TouchableOpacity 
-          style={styles.searchButton}
-          onPress={() => setShowSearch(!showSearch)}
-        >
-          <IconSymbol 
-            name={showSearch ? "xmark" : "magnifyingglass"} 
-            size={24} 
-            color={theme.primary} 
-          />
-        </TouchableOpacity>
-      </View>
+    <View style={styles.container}>
+      <NorthHeader 
+        rightElement={
+          <TouchableOpacity 
+            style={styles.searchButton}
+            onPress={() => setShowSearch(!showSearch)}
+          >
+            <IconSymbol 
+              name={showSearch ? "xmark" : "magnifyingglass"} 
+              size={22} 
+              color="#ffffff" 
+            />
+          </TouchableOpacity>
+        }
+      />
 
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* Search Input */}
@@ -152,6 +150,6 @@ export default function ExploreComponent({ onDestinationPress }: Props) {
           )}
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }

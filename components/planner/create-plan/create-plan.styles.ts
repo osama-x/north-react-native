@@ -193,16 +193,6 @@ export const createStyles = (colorScheme: 'light' | 'dark') => {
       fontWeight: '800',
       color: '#ffffff',
     },
-    backButton: {
-      marginBottom: 20,
-      width: 44,
-      height: 44,
-      borderRadius: 22,
-      backgroundColor: theme.lightGray,
-      justifyContent: 'center',
-      alignItems: 'center',
-      borderWidth: 1,
-      borderColor: theme.border,
-    },
+
   });
 };

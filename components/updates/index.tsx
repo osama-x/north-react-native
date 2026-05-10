@@ -19,6 +19,8 @@ import { UpdatesService } from './updates.service';
 import { NewsItem, RoadStatus, UpdateView } from './types';
 import { Colors } from '@/constants/theme';
 
+import { NorthHeader } from '@/components/ui/north-header';
+
 export default function UpdatesComponent() {
   const colorScheme = useColorScheme();
   const styles = useMemo(() => createStyles(colorScheme ?? 'light'), [colorScheme]);
@@ -157,18 +159,14 @@ export default function UpdatesComponent() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      {/* Header Bar */}
-      <View style={styles.header}>
-        <Image
-          source={require('@/assets/images/logo.png')}
-          style={styles.logo}
-        />
-        <Text style={styles.headerTitle}>Updates</Text>
-        <TouchableOpacity style={styles.searchButton}>
-          <IconSymbol name="magnifyingglass" size={24} color={theme.primary} />
-        </TouchableOpacity>
-      </View>
+    <View style={styles.container}>
+      <NorthHeader 
+        rightElement={
+          <TouchableOpacity style={styles.searchButton}>
+            <IconSymbol name="magnifyingglass" size={22} color="#ffffff" />
+          </TouchableOpacity>
+        }
+      />
 
       {/* View Switcher */}
       <View style={styles.viewSwitcher}>
@@ -262,7 +260,7 @@ export default function UpdatesComponent() {
         onRequestClose={() => setSelectedNews(null)}
       >
         {selectedNews && (
-          <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
+          <View style={[styles.container, { backgroundColor: theme.background }]}>
             <View style={styles.detailHeader}>
               <TouchableOpacity onPress={() => setSelectedNews(null)} style={styles.detailBackButton}>
                 <IconSymbol name="chevron.left" size={28} color={theme.primary} />
@@ -297,9 +295,9 @@ export default function UpdatesComponent() {
                 <Text style={styles.fullContentText}>{selectedNews.content}</Text>
               </View>
             </ScrollView>
-          </SafeAreaView>
+          </View>
         )}
       </Modal>
-    </SafeAreaView>
+    </View>
   );
 }

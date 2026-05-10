@@ -21,6 +21,8 @@ import { ItineraryService } from './itinerary.service';
 import { TripItinerary, ItineraryDay, ItineraryNode, StayOption } from './types';
 import { Colors } from '@/constants/theme';
 
+import { NorthHeader } from '@/components/ui/north-header';
+
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -256,13 +258,14 @@ export default function ItineraryComponent() {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <Image source={require('@/assets/images/logo.png')} style={styles.logo} />
-        <TouchableOpacity style={styles.saveButton}>
-          <Text style={styles.saveButtonText}>Save and Track</Text>
-        </TouchableOpacity>
-      </View>
+    <View style={styles.container}>
+      <NorthHeader 
+        rightElement={
+          <TouchableOpacity style={styles.saveButton}>
+            <Text style={styles.saveButtonText}>Save and Track</Text>
+          </TouchableOpacity>
+        }
+      />
 
       <ScrollView contentContainerStyle={{ paddingBottom: 160 }} showsVerticalScrollIndicator={false}>
         {itinerary?.days.map(day => {
@@ -364,6 +367,6 @@ export default function ItineraryComponent() {
           <IconSymbol name="arrow.right.circle.fill" size={48} color={theme.accent} />
         </TouchableOpacity>
       </View>
-    </SafeAreaView>
+    </View>
   );
 }

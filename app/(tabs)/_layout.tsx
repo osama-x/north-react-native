@@ -6,6 +6,24 @@ import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
+const TABS_CONFIG = [
+  {
+    name: 'index',
+    title: 'Updates',
+    icon: 'bell.fill' as const,
+  },
+  {
+    name: 'explore',
+    title: 'Explore',
+    icon: 'map.fill' as const,
+  },
+  {
+    name: 'plan',
+    title: 'Plan',
+    icon: 'calendar.fill' as const,
+  },
+];
+
 export default function TabLayout() {
   const colorScheme = useColorScheme();
 
@@ -15,33 +33,27 @@ export default function TabLayout() {
         tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
         headerShown: false,
         tabBarButton: HapticTab,
+        tabBarStyle: {
+          backgroundColor: Colors[colorScheme ?? 'light'].background,
+          borderTopWidth: 1,
+          borderTopColor: Colors[colorScheme ?? 'light'].border,
+        }
       }}>
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: 'Updates',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="bell.fill" color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="explore"
-        options={{
-          title: 'Explore',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="map.fill" color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="plan"
-        options={{
-          title: 'Plan',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="calendar.fill" color={color} />,
-        }}
-      />
+      {TABS_CONFIG.map((tab) => (
+        <Tabs.Screen
+          key={tab.name}
+          name={tab.name}
+          options={{
+            title: tab.title,
+            tabBarIcon: ({ color }) => <IconSymbol size={28} name={tab.icon} color={color} />,
+          }}
+        />
+      ))}
+      {/* Explicitly hide stays if the file exists to ensure it doesn't show up in bottom nav */}
       <Tabs.Screen
         name="stays"
         options={{
-          title: 'Stays',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="bed.double.fill" color={color} />,
+          href: null,
         }}
       />
     </Tabs>

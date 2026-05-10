@@ -4,16 +4,15 @@ import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { StatusBar } from 'expo-status-bar';
 
+import { NorthHeader } from '@/components/ui/north-header';
+
 export default function StaysScreen() {
   const colorScheme = useColorScheme();
   const theme = Colors[colorScheme ?? 'light'];
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
-      <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
-      <View style={styles.header}>
-        <Text style={[styles.headerTitle, { color: theme.primary }]}>Stays</Text>
-      </View>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
+      <NorthHeader />
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={[styles.card, { backgroundColor: theme.lightGray, borderColor: theme.border }]}>
           <Text style={[styles.cardTitle, { color: theme.primary }]}>Find Accommodations</Text>
@@ -22,7 +21,7 @@ export default function StaysScreen() {
           </Text>
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 

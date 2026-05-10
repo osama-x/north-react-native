@@ -11,36 +11,22 @@ export const createStyles = (colorScheme: 'light' | 'dark') => {
       flex: 1,
       backgroundColor: theme.background,
     },
-    header: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      paddingHorizontal: 20,
-      paddingTop: 10,
-      paddingBottom: 15,
-    },
-    logo: {
-      width: 140,
-      height: 50,
-      resizeMode: 'contain',
-    },
+
     headerTitle: {
       fontSize: 18,
       fontWeight: '800',
       color: theme.primary,
     },
     myPlansButton: {
-      paddingHorizontal: 16,
-      paddingVertical: 8,
-      borderRadius: 12,
-      backgroundColor: theme.lightGray,
-      borderWidth: 1.5,
-      borderColor: theme.border,
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderRadius: 10,
+      backgroundColor: 'rgba(255, 255, 255, 0.2)',
     },
     myPlansButtonText: {
-      fontSize: 14,
+      fontSize: 13,
       fontWeight: '700',
-      color: theme.primary,
+      color: '#ffffff',
     },
     section: {
       marginTop: 24,

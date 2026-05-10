@@ -15,6 +15,8 @@ import { PlannerService } from './planner.service';
 import { MyPlan, FeaturedPlan } from './types';
 import { Colors } from '@/constants/theme';
 
+import { NorthHeader } from '@/components/ui/north-header';
+
 interface Props {
   onGeneratePress?: () => void;
 }
@@ -68,18 +70,14 @@ export default function PlannerComponent({ onGeneratePress }: Props) {
   );
 
   return (
-    <SafeAreaView style={styles.container}>
-      {/* Header Bar */}
-      <View style={styles.header}>
-        <Image
-          source={require('@/assets/images/logo.png')}
-          style={styles.logo}
-        />
-        <Text style={styles.headerTitle}>AI Trip Planner</Text>
-        <TouchableOpacity style={styles.myPlansButton}>
-          <Text style={styles.myPlansButtonText}>My Plans</Text>
-        </TouchableOpacity>
-      </View>
+    <View style={styles.container}>
+      <NorthHeader 
+        rightElement={
+          <TouchableOpacity style={styles.myPlansButton}>
+            <Text style={styles.myPlansButtonText}>My Plans</Text>
+          </TouchableOpacity>
+        }
+      />
 
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* My Plans Section */}
@@ -113,6 +111,6 @@ export default function PlannerComponent({ onGeneratePress }: Props) {
           <Text style={styles.generateButtonText}>generate custom trip</Text>
         </TouchableOpacity>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }

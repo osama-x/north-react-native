@@ -11,31 +11,17 @@ export const createStyles = (colorScheme: 'light' | 'dark') => {
       flex: 1,
       backgroundColor: theme.background,
     },
-    header: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      paddingHorizontal: 20,
-      paddingTop: 10,
-      paddingBottom: 15,
-      borderBottomWidth: 1,
-      borderBottomColor: theme.border,
-    },
-    logo: {
-      width: 120,
-      height: 40,
-      resizeMode: 'contain',
-    },
+
     saveButton: {
-      backgroundColor: theme.accent,
-      paddingHorizontal: 16,
-      paddingVertical: 10,
-      borderRadius: 12,
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderRadius: 10,
+      backgroundColor: 'rgba(255, 255, 255, 0.2)',
     },
     saveButtonText: {
       color: '#ffffff',
-      fontWeight: '800',
-      fontSize: 14,
+      fontWeight: '700',
+      fontSize: 13,
     },
     dayContainer: {
       marginTop: 20,

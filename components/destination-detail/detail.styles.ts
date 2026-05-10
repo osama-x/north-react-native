@@ -12,25 +12,14 @@ export const createStyles = (colorScheme: 'light' | 'dark') => {
       backgroundColor: theme.background,
     },
     hero: {
-      height: height * 0.35,
+      height: height * 0.28,
       backgroundColor: theme.accent,
       justifyContent: 'flex-end',
       padding: 24,
       borderBottomLeftRadius: 32,
       borderBottomRightRadius: 32,
     },
-    backButton: {
-      position: 'absolute',
-      top: 50,
-      left: 20,
-      width: 44,
-      height: 44,
-      borderRadius: 22,
-      backgroundColor: 'rgba(255, 255, 255, 0.2)',
-      justifyContent: 'center',
-      alignItems: 'center',
-      zIndex: 10,
-    },
+
     heroName: {
       fontSize: 40,
       fontWeight: '900',

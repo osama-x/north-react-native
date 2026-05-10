@@ -22,6 +22,8 @@ interface Props {
   onPlanPress?: (destinationName: string) => void;
 }
 
+import { NorthHeader } from '@/components/ui/north-header';
+
 export default function DestinationDetailComponent({ destinationId, onBack, onPlanPress }: Props) {
   const colorScheme = useColorScheme();
   const styles = useMemo(() => createStyles(colorScheme ?? 'light'), [colorScheme]);
@@ -86,13 +88,19 @@ export default function DestinationDetailComponent({ destinationId, onBack, onPl
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" />
+      <NorthHeader 
+        leftElement={
+          <TouchableOpacity 
+            style={{ padding: 8, backgroundColor: 'rgba(255, 255, 255, 0.2)', borderRadius: 12 }} 
+            onPress={onBack}
+          >
+            <IconSymbol name="chevron.left" size={24} color="#ffffff" />
+          </TouchableOpacity>
+        }
+      />
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* Hero Section */}
         <View style={styles.hero}>
-          <TouchableOpacity style={styles.backButton} onPress={onBack}>
-            <IconSymbol name="chevron.left" size={24} color="#ffffff" />
-          </TouchableOpacity>
           <Text style={styles.heroName}>{detail.name}</Text>
           <Text style={styles.heroRegion}>{detail.region}</Text>
           <View style={styles.ratingBadge}>

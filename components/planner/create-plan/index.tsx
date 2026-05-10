@@ -21,6 +21,8 @@ interface Props {
   onContinue: (config: TripConfig) => void;
 }
 
+import { NorthHeader } from '@/components/ui/north-header';
+
 export default function CreatePlanComponent({ initialDestination, onBack, onContinue }: Props) {
   const colorScheme = useColorScheme();
   const styles = useMemo(() => createStyles(colorScheme ?? 'light'), [colorScheme]);
@@ -132,16 +134,23 @@ export default function CreatePlanComponent({ initialDestination, onBack, onCont
   );
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
+      <NorthHeader 
+        leftElement={
+          <TouchableOpacity 
+            style={{ padding: 8, backgroundColor: 'rgba(255, 255, 255, 0.2)', borderRadius: 12 }} 
+            onPress={onBack}
+          >
+            <IconSymbol name="chevron.left" size={24} color="#ffffff" />
+          </TouchableOpacity>
+        }
+      />
       <ScrollView 
         contentContainerStyle={styles.scrollContent} 
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
         scrollEnabled={!isSliding} // DISABLE SCROLLING WHILE SLIDING
       >
-        <TouchableOpacity style={styles.backButton} onPress={onBack}>
-          <IconSymbol name="chevron.left" size={24} color={theme.primary} />
-        </TouchableOpacity>
 
         <View style={styles.header}>
           <Text style={styles.phaseText}>Phase 01 — Logistics</Text>
@@ -252,6 +261,6 @@ export default function CreatePlanComponent({ initialDestination, onBack, onCont
           <Text style={styles.continueButtonText}>Continue to Itinerary</Text>
         </TouchableOpacity>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }

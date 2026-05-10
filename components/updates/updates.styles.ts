@@ -11,27 +11,18 @@ export const createStyles = (colorScheme: 'light' | 'dark') => {
       flex: 1,
       backgroundColor: theme.background,
     },
-    header: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      paddingHorizontal: 20,
-      paddingVertical: 15,
-      borderBottomWidth: 1,
-      borderBottomColor: theme.border,
-    },
-    logo: {
-      width: 100,
-      height: 32,
-      resizeMode: 'contain',
-    },
+
     headerTitle: {
       fontFamily: Typography.header.bold,
       fontSize: 20,
       color: theme.primary,
     },
     searchButton: {
-      padding: 4,
+      padding: 8,
+      borderRadius: 12,
+      backgroundColor: 'rgba(255, 255, 255, 0.2)',
+      justifyContent: 'center',
+      alignItems: 'center',
     },
     viewSwitcher: {
       flexDirection: 'row',
