@@ -37,6 +37,11 @@ const MAPPING = {
   'magnifyingglass': 'search',
   'clock.fill': 'access-time',
   'newspaper.fill': 'article',
+  'trash': 'delete',
+  'note.text': 'notes',
+  'creditcard.fill': 'credit-card',
+  'pencil': 'edit',
+  'plus.circle.fill': 'add-circle',
 } as IconMapping;
 
 /**

@@ -32,10 +32,11 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
 }
 
 interface Props {
-  onSave?: (totalCost: number) => void;
+  onSave?: (totalCost: number, itinerary: TripItinerary) => void;
+  onBack?: () => void;
 }
 
-export default function ItineraryComponent({ onSave }: Props) {
+export default function ItineraryComponent({ onSave, onBack }: Props) {
   const colorScheme = useColorScheme();
   const styles = useMemo(() => createStyles(colorScheme ?? 'light'), [colorScheme]);
   const theme = Colors[colorScheme ?? 'light'];
@@ -332,10 +333,18 @@ export default function ItineraryComponent({ onSave }: Props) {
   return (
     <View style={styles.container}>
       <NorthHeader 
+        leftElement={
+          <TouchableOpacity 
+            style={{ padding: 8, backgroundColor: 'rgba(255, 255, 255, 0.2)', borderRadius: 12 }} 
+            onPress={onBack}
+          >
+            <IconSymbol name="chevron.left" size={24} color="#ffffff" />
+          </TouchableOpacity>
+        }
         rightElement={
           <TouchableOpacity 
             style={styles.saveButton}
-            onPress={() => onSave?.(totalCost)}
+            onPress={() => itinerary && onSave?.(totalCost, itinerary)}
           >
             <Text style={styles.saveButtonText}>Save and Track</Text>
           </TouchableOpacity>
@@ -472,7 +481,7 @@ export default function ItineraryComponent({ onSave }: Props) {
         </View>
         <TouchableOpacity 
           activeOpacity={0.8}
-          onPress={() => onSave?.(totalCost)}
+          onPress={() => itinerary && onSave?.(totalCost, itinerary)}
         >
           <IconSymbol name="arrow.right.circle.fill" size={48} color={theme.accent} />
         </TouchableOpacity>

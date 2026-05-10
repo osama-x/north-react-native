@@ -51,6 +51,7 @@ export interface ItineraryNode {
   isOptional: boolean;
   isSelected: boolean;
   isHidden?: boolean;
+  isCustom?: boolean; // New flag for custom activities
   
   // For ActivityGroup type
   items?: ItineraryNode[];
@@ -67,6 +68,12 @@ export interface StayOption {
   description?: string;
 }
 
+export interface DayNote {
+  id: string;
+  title: string;
+  text: string;
+}
+
 export interface ItineraryDay {
   id: string;
   dayNumber: number;
@@ -75,10 +82,12 @@ export interface ItineraryDay {
   nodes: ItineraryNode[];
   stayOptions: StayOption[];
   selectedStayId?: string;
+  notes?: DayNote[];
 }
 
 export interface TripItinerary {
   id: string;
   title: string;
   days: ItineraryDay[];
+  tripNotes?: DayNote[]; // Added for overall trip notes
 }

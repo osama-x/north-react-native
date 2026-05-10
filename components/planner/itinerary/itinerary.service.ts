@@ -131,7 +131,7 @@ export const transformBackendResponse = (response: BackendFindRouteResponse): Tr
   });
 
   return {
-    id: 'generated-itinerary',
+    id: `trip-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
     title: 'Custom Expedition',
     days,
   };

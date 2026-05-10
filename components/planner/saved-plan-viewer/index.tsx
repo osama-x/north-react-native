@@ -1,0 +1,968 @@
+import React, { useState, useEffect, useMemo, createElement } from 'react';
+import {
+  View,
+  Text,
+  ScrollView,
+  TouchableOpacity,
+  TextInput,
+  ActivityIndicator,
+  Alert,
+  Modal,
+  KeyboardAvoidingView,
+  Platform,
+  UIManager,
+  LayoutAnimation,
+  TouchableWithoutFeedback,
+} from 'react-native';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import { useColorScheme } from '@/hooks/use-color-scheme';
+import { IconSymbol } from '@/components/ui/icon-symbol';
+import { Colors } from '@/constants/theme';
+import { NorthHeader } from '@/components/ui/north-header';
+import { dbService, SavedPlanRecord } from '@/database';
+import { TripItinerary, ItineraryDay, ItineraryNode, DayNote } from '../itinerary/types';
+import { createStyles } from './saved-plan-viewer.styles';
+import { formatTime } from '../itinerary/itinerary.service';
+import { Slider } from '@/components/ui/slider';
+
+if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
+
+interface Props {
+  planId: string;
+  onBack: () => void;
+}
+
+export default function SavedPlanViewerComponent({ planId, onBack }: Props) {
+  const colorScheme = useColorScheme();
+  const styles = useMemo(() => createStyles(colorScheme ?? 'light'), [colorScheme]);
+  const theme = Colors[colorScheme ?? 'light'];
+  
+  const [record, setRecord] = useState<SavedPlanRecord | null>(null);
+  const [loading, setLoading] = useState(true);
+  
+  // Modals state
+  const [noteModalVisible, setNoteModalVisible] = useState(false);
+  const [activityModalVisible, setActivityModalVisible] = useState(false);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [activeDayId, setActiveDayId] = useState<string | null>(null);
+  const [isTripNote, setIsTripNote] = useState(false);
+  
+  // Note Form
+  const [noteTitle, setNoteTitle] = useState('');
+  const [noteText, setNoteText] = useState('');
+  const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
+
+  // Activity Form
+  const [actName, setActName] = useState('');
+  const [actDuration, setActDuration] = useState('1 hr');
+  const [actCost, setActCost] = useState('');
+  const [editingActivityId, setEditingActivityId] = useState<string | null>(null);
+
+  // Itinerary UI State
+  const [collapsedDays, setCollapsedDays] = useState<Record<string, boolean>>({});
+  const [menuConfig, setMenuConfig] = useState<{ dayId: string; groupId: string; x: number; y: number } | null>(null);
+  const [activeSliderDayId, setActiveSliderDayId] = useState<string | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<{ 
+    type: 'note' | 'activity', 
+    dayId: string | null, 
+    id: string, 
+    isTrip?: boolean, 
+    cost?: number 
+  } | null>(null);
+  const [showSavedMessage, setShowSavedMessage] = useState(false);
+
+  useEffect(() => {
+    loadPlan();
+  }, [planId]);
+
+  const loadPlan = async () => {
+    setLoading(true);
+    const plan = await dbService.getPlanById(planId);
+    setRecord(plan);
+    
+    if (plan) {
+      const initialCollapsed: Record<string, boolean> = {};
+      plan.data.days.forEach((day: ItineraryDay, index: number) => {
+        initialCollapsed[day.id] = index !== 0;
+      });
+      setCollapsedDays(initialCollapsed);
+    }
+    
+    setLoading(false);
+  };
+
+  const saveChanges = async (updatedPlan: TripItinerary, updatedTotalCost?: number) => {
+    if (!record) return;
+    try {
+      await dbService.updatePlan(updatedPlan, updatedTotalCost ?? record.totalCost);
+      // Use functional update to ensure we have latest record
+      setRecord(prev => {
+        if (!prev) return null;
+        return { 
+          ...prev, 
+          data: updatedPlan, 
+          totalCost: updatedTotalCost ?? prev.totalCost 
+        };
+      });
+
+      // Show temporary "Saved" feedback
+      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+      setShowSavedMessage(true);
+      setTimeout(() => {
+        LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+        setShowSavedMessage(false);
+      }, 2000);
+    } catch (e) {
+      console.error("Save error:", e);
+    }
+  };
+
+  // --- Logic from ItineraryComponent ---
+  const toggleDay = (dayId: string) => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setCollapsedDays(prev => ({
+      ...prev,
+      [dayId]: !prev[dayId]
+    }));
+  };
+
+  const recalculateDayTimes = (day: ItineraryDay): ItineraryDay => {
+    let currentMin = day.departureTimeMin;
+    
+    const newNodes = day.nodes.map(node => {
+      if (node.type === 'ActivityGroup') {
+        const groupStartTime = formatTime(currentMin);
+        const newItems = node.items?.map(item => {
+          const itemNode = { 
+            ...item, 
+            time: formatTime(currentMin),
+            arrivalTime: formatTime(currentMin + (item.timeRequiredMin || 0))
+          };
+          if (item.isSelected && !item.isHidden) {
+            currentMin += item.timeRequiredMin || 0;
+          }
+          return itemNode;
+        });
+        return {
+          ...node,
+          time: groupStartTime,
+          items: newItems,
+        };
+      } else {
+        const newNode = { 
+          ...node, 
+          time: formatTime(currentMin),
+          arrivalTime: formatTime(currentMin + (node.timeRequiredMin || 0))
+        };
+        // Add duration of custom activities too if timeRequiredMin is set, otherwise default to 60 for calculation
+        const durationMin = node.timeRequiredMin || (node.isCustom ? 60 : 0);
+        if (node.isSelected && !node.isHidden) {
+          currentMin += durationMin;
+        }
+        return newNode;
+      }
+    });
+
+    return { ...day, nodes: newNodes };
+  };
+
+  const setDepartureTime = (dayId: string, timeMin: number) => {
+    if (!record) return;
+    const updatedData = { 
+      ...record.data,
+      days: record.data.days.map(day => {
+        if (day.id !== dayId) return day;
+        const updatedDay = { ...day, departureTimeMin: timeMin };
+        return recalculateDayTimes(updatedDay);
+      })
+    };
+    saveChanges(updatedData);
+  };
+
+  const toggleSubItem = (dayId: string, groupId: string, itemId: string) => {
+    if (!record) return;
+    
+    const updatedData = { ...record.data };
+    let costDiff = 0;
+
+    updatedData.days = updatedData.days.map(day => {
+      if (day.id !== dayId) return day;
+      const updatedDay = {
+        ...day,
+        nodes: day.nodes.map(node => {
+          if (node.id !== groupId || !node.items) return node;
+          return {
+            ...node,
+            items: node.items.map(item => {
+              if (item.id !== itemId) return item;
+              const newIsSelected = !item.isSelected;
+              if (newIsSelected) costDiff += item.cost;
+              else costDiff -= item.cost;
+              return { ...item, isSelected: newIsSelected };
+            })
+          };
+        })
+      };
+      return recalculateDayTimes(updatedDay);
+    });
+
+    saveChanges(updatedData, record.totalCost + costDiff);
+  };
+
+  const hideSubItem = (dayId: string, groupId: string, itemId: string) => {
+    if (!record) return;
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    const updatedData = { ...record.data };
+    
+    updatedData.days = updatedData.days.map(day => {
+      if (day.id !== dayId) return day;
+      const updatedDay = {
+        ...day,
+        nodes: day.nodes.map(node => {
+          if (node.id !== groupId || !node.items) return node;
+          return {
+            ...node,
+            items: node.items.map(item => {
+              if (item.id !== itemId) return item;
+              return { ...item, isHidden: true, isSelected: false };
+            })
+          };
+        })
+      };
+      return recalculateDayTimes(updatedDay);
+    });
+    
+    saveChanges(updatedData);
+  };
+
+  const resetActivityGroup = (dayId: string, groupId: string) => {
+    if (!record) return;
+    
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    const updatedData = { ...record.data };
+    // Cost diff recalculation would ideally happen by comparing old and new selected items
+    // For simplicity, we just recalculate full cost later
+    
+    updatedData.days = updatedData.days.map(day => {
+      if (day.id !== dayId) return day;
+      const updatedDay = {
+        ...day,
+        nodes: day.nodes.map(node => {
+          if (node.id !== groupId || !node.originalItems) return node;
+          return {
+            ...node,
+            items: JSON.parse(JSON.stringify(node.originalItems))
+          };
+        })
+      };
+      return recalculateDayTimes(updatedDay);
+    });
+    
+    saveChanges(updatedData); // Cost will need a full recalculate function if we reset
+    setMenuConfig(null);
+  };
+
+  const openMenu = (dayId: string, groupId: string, event: any) => {
+    const { pageX, pageY } = event.nativeEvent;
+    
+    setMenuConfig({ 
+      dayId, 
+      groupId, 
+      x: pageX - 130,
+      y: pageY + 10 
+    });
+  };
+
+  // --- End Logic from ItineraryComponent ---
+
+  const handleDateChange = (event: any, selectedDate?: Date) => {
+    setShowDatePicker(Platform.OS === 'ios'); // Keep picker open on iOS, close on Android
+    if (selectedDate && record) {
+      // Format to YYYY-MM-DD
+      const dateString = selectedDate.toISOString().split('T')[0];
+      const updated = { ...record, startDate: dateString };
+      
+      const updatedData = { ...updated.data };
+      if (updatedData.days.length > 0) {
+        updatedData.days[0].date = dateString;
+      }
+      setRecord({ ...updated, data: updatedData });
+    }
+  };
+
+  // --- Notes ---
+  const openNoteModal = (dayId: string | null, isTrip: boolean, note?: DayNote) => {
+    setActiveDayId(dayId);
+    setIsTripNote(isTrip);
+    if (note) {
+      setNoteTitle(note.title);
+      setNoteText(note.text);
+      setEditingNoteId(note.id);
+    } else {
+      setNoteTitle('');
+      setNoteText('');
+      setEditingNoteId(null);
+    }
+    setNoteModalVisible(true);
+  };
+
+  const saveNote = () => {
+    if (!record || !noteTitle) return;
+    
+    const updatedData = { ...record.data };
+
+    if (isTripNote) {
+      const notes = updatedData.tripNotes ? [...updatedData.tripNotes] : [];
+      if (editingNoteId) {
+        const nIdx = notes.findIndex(n => n.id === editingNoteId);
+        if (nIdx > -1) {
+          notes[nIdx] = { ...notes[nIdx], title: noteTitle, text: noteText };
+        }
+      } else {
+        notes.push({ id: Math.random().toString(), title: noteTitle, text: noteText });
+      }
+      updatedData.tripNotes = notes;
+    } else {
+      if (!activeDayId) return;
+      updatedData.days = updatedData.days.map(day => {
+        if (day.id !== activeDayId) return day;
+        const notes = day.notes ? [...day.notes] : [];
+        if (editingNoteId) {
+          const nIdx = notes.findIndex(n => n.id === editingNoteId);
+          if (nIdx > -1) {
+            notes[nIdx] = { ...notes[nIdx], title: noteTitle, text: noteText };
+          }
+        } else {
+          notes.push({ id: Math.random().toString(), title: noteTitle, text: noteText });
+        }
+        return { ...day, notes };
+      });
+    }
+
+    saveChanges(updatedData);
+    setNoteModalVisible(false);
+  };
+
+  const performNoteDeletion = (dayId: string | null, isTrip: boolean, noteId: string) => {
+    if (!record) return;
+    const updatedData = { ...record.data };
+
+    if (isTrip) {
+      updatedData.tripNotes = updatedData.tripNotes?.filter(n => n.id !== noteId);
+    } else {
+      if (!dayId) return;
+      updatedData.days = updatedData.days.map(day => {
+        if (day.id !== dayId) return day;
+        return { ...day, notes: day.notes?.filter(n => n.id !== noteId) };
+      });
+    }
+    
+    saveChanges(updatedData);
+  };
+
+  // --- Custom Activities ---
+  const openActivityModal = (dayId: string, node?: ItineraryNode) => {
+    setActiveDayId(dayId);
+    if (node) {
+      setActName(node.title);
+      setActDuration(node.duration);
+      setActCost(node.cost.toString());
+      setEditingActivityId(node.id);
+    } else {
+      setActName('');
+      setActDuration('1 hr');
+      setActCost('0');
+      setEditingActivityId(null);
+    }
+    setActivityModalVisible(true);
+  };
+
+  const saveActivity = () => {
+    if (!record || !activeDayId || !actName) return;
+    
+    const costNum = parseFloat(actCost) || 0;
+    let oldCost = 0;
+    
+    // Convert duration string to mins roughly for timeline recalculation
+    let timeRequiredMin = 60;
+    if (actDuration.toLowerCase().includes('hr') || actDuration.toLowerCase().includes('hour')) {
+      const match = actDuration.match(/([\d.]+)/);
+      if (match) timeRequiredMin = parseFloat(match[1]) * 60;
+    } else if (actDuration.toLowerCase().includes('min')) {
+      const match = actDuration.match(/([\d.]+)/);
+      if (match) timeRequiredMin = parseFloat(match[1]);
+    }
+    
+    const updatedData = {
+      ...record.data,
+      days: record.data.days.map(day => {
+        if (day.id !== activeDayId) return day;
+        
+        let newNodes = [...day.nodes];
+        if (editingActivityId) {
+          const nodeIdx = newNodes.findIndex(n => n.id === editingActivityId);
+          if (nodeIdx > -1) {
+            oldCost = newNodes[nodeIdx].cost;
+            newNodes[nodeIdx] = {
+              ...newNodes[nodeIdx],
+              title: actName,
+              duration: actDuration,
+              cost: costNum,
+              timeRequiredMin
+            };
+          }
+        } else {
+          const newNode: ItineraryNode = {
+            id: 'custom-' + Math.random().toString(),
+            type: 'Activity',
+            title: actName,
+            description: 'Custom added activity',
+            time: '--:--', 
+            duration: actDuration,
+            cost: costNum,
+            timeRequiredMin,
+            isFixed: false,
+            isOptional: false,
+            isSelected: true,
+            isCustom: true
+          };
+          newNodes.push(newNode);
+        }
+        
+        return recalculateDayTimes({ ...day, nodes: newNodes });
+      })
+    };
+
+    const newTotalCost = record.totalCost - oldCost + costNum;
+    saveChanges(updatedData, newTotalCost);
+    setActivityModalVisible(false);
+  };
+
+  const performActivityDeletion = (dayId: string, nodeId: string, cost: number) => {
+    if (!record) return;
+    const updatedData = { 
+      ...record.data,
+      days: record.data.days.map(day => {
+        if (day.id !== dayId) return day;
+        const updatedDay = {
+          ...day,
+          nodes: day.nodes.filter(n => n.id !== nodeId)
+        };
+        return recalculateDayTimes(updatedDay);
+      })
+    };
+    const newTotalCost = Math.max(0, record.totalCost - cost);
+    saveChanges(updatedData, newTotalCost);
+  };
+
+  const renderNode = (dayId: string, node: ItineraryNode) => {
+    const isActivity = node.type === 'Activity' || node.type === 'Stop' || node.type === 'Rest';
+    
+    return (
+      <TouchableOpacity 
+        key={node.id} 
+        style={[
+          styles.mustHaveCard, 
+          isActivity ? styles.activityCard : styles.travelCard
+        ]}
+        onPress={() => node.isCustom && openActivityModal(dayId, node)}
+        activeOpacity={node.isCustom ? 0.7 : 1}
+      >
+        <View style={styles.cardHeader}>
+          <View style={styles.timeTag}>
+            <Text style={styles.timeText}>{node.time}</Text>
+          </View>
+          <Text style={styles.durationText}>{node.duration}</Text>
+        </View>
+        
+        <View style={styles.cardTitleRow}>
+          <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center' }}>
+            {node.isCustom && (
+              <View style={styles.customBadge}>
+                <Text style={styles.customBadgeText}>Custom</Text>
+              </View>
+            )}
+            <Text style={styles.cardTitle} numberOfLines={2}>{node.title}</Text>
+          </View>
+        </View>
+
+        {node.summary && <Text style={styles.cardSummary}>{node.summary}</Text>}
+        {node.type === 'Travel' && node.arrivalTime && node.toLocation && (
+          <Text style={styles.arrivalNote}>
+            You will arrive at {node.toLocation} at {node.arrivalTime}
+          </Text>
+        )}
+      </TouchableOpacity>
+    );
+  };
+
+  const renderOptionalItem = (dayId: string, groupId: string, node: ItineraryNode) => {
+    if (node.isHidden) return null;
+
+    return (
+      <View
+        key={node.id}
+        style={[styles.optionalCard, node.isSelected && styles.optionalCardSelected]}
+      >
+        <View style={styles.optionalInfo}>
+          <Text style={styles.optionalTitle}>{node.title}</Text>
+          <Text style={styles.optionalDetails}>{node.time} • {node.duration}</Text>
+          {node.cost > 0 && (
+            <Text style={[styles.optionalDetails, { color: theme.accent, fontWeight: '700' }]}>
+              Cost: PKR {node.cost.toLocaleString()}
+            </Text>
+          )}
+        </View>
+        <View style={styles.activityActions}>
+          <TouchableOpacity 
+            style={[styles.addButton, node.isSelected && styles.addedButton]}
+            onPress={() => toggleSubItem(dayId, groupId, node.id)}
+          >
+            <Text style={node.isSelected ? styles.addedButtonText : styles.addButtonText}>
+              {node.isSelected ? 'Added' : 'Add'}
+            </Text>
+          </TouchableOpacity>
+          
+          {!node.isSelected && (
+            <TouchableOpacity 
+              style={styles.skipButton}
+              onPress={() => hideSubItem(dayId, groupId, node.id)}
+            >
+              <Text style={styles.skipButtonText}>Skip</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      </View>
+    );
+  };
+
+  if (loading || !record) {
+    return (
+      <View style={[styles.center, { backgroundColor: theme.background }]}>
+        <ActivityIndicator size="large" color={theme.accent} />
+      </View>
+    );
+  }
+
+  return (
+    <View style={styles.container}>
+      <NorthHeader 
+        title="Saved Plan"
+        showLogo={false}
+        leftElement={
+          <TouchableOpacity style={styles.headerBtn} onPress={onBack}>
+            <IconSymbol name="chevron.left" size={24} color="#ffffff" />
+          </TouchableOpacity>
+        }
+        rightElement={null}
+      />
+
+      {/* Floating Save Toast */}
+      {showSavedMessage && (
+        <View style={{
+          position: 'absolute',
+          top: Platform.OS === 'ios' ? 110 : 80,
+          left: 20,
+          right: 20,
+          backgroundColor: theme.accent,
+          paddingVertical: 14,
+          paddingHorizontal: 20,
+          borderRadius: 20,
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 10,
+          zIndex: 9999,
+          elevation: 10,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 6 },
+          shadowOpacity: 0.3,
+          shadowRadius: 12,
+        }}>
+          <IconSymbol name="checkmark.circle.fill" size={22} color="#fff" />
+          <Text style={{ color: '#fff', fontWeight: '800', fontSize: 16 }}>Trip Plan Updated</Text>
+        </View>
+      )}
+
+      <ScrollView contentContainerStyle={[styles.scrollContent, { paddingBottom: 220 }]} showsVerticalScrollIndicator={false}>
+        {/* Editor Header */}
+        <View style={styles.editorHeader}>
+          <TextInput 
+            style={[styles.input, { fontSize: 24, marginBottom: 12 }]}
+            value={record.title}
+            onChangeText={(t) => setRecord({ ...record, title: t })}
+            placeholder="Trip Name"
+            placeholderTextColor={theme.tertiary}
+          />
+          <Text style={styles.label}>Trip Start Date</Text>
+          {Platform.OS === 'web' ? (
+            createElement('input', {
+              type: 'date',
+              value: record.startDate,
+              onChange: (e: any) => {
+                const dateString = e.target.value;
+                const updated = { ...record, startDate: dateString };
+                const updatedData = { ...updated.data };
+                if (updatedData.days.length > 0) {
+                  updatedData.days[0].date = dateString;
+                }
+                setRecord({ ...updated, data: updatedData });
+              },
+              style: {
+                padding: '8px 0',
+                fontSize: '16px',
+                backgroundColor: 'transparent',
+                color: theme.primary,
+                border: 'none',
+                borderBottom: `1px solid ${theme.border}`,
+                fontFamily: 'inherit',
+                outline: 'none',
+                width: '100%',
+              }
+            })
+          ) : (
+            <>
+              <TouchableOpacity 
+                onPress={() => setShowDatePicker(true)}
+                style={{ paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: theme.border }}
+              >
+                <Text style={[styles.input, { color: record.startDate ? theme.primary : theme.tertiary }]}>
+                  {record.startDate || "Select Date"}
+                </Text>
+              </TouchableOpacity>
+              
+              {showDatePicker && (
+                <DateTimePicker
+                  value={new Date(record.startDate || Date.now())}
+                  mode="date"
+                  display="default"
+                  onChange={handleDateChange}
+                  minimumDate={new Date()}
+                />
+              )}
+            </>
+          )}
+          
+          {/* Trip Notes Section */}
+          <View style={{ marginTop: 24, paddingTop: 20, borderTopWidth: 1, borderTopColor: theme.border }}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Trip Notes</Text>
+              <TouchableOpacity onPress={() => openNoteModal(null, true)}>
+                <Text style={styles.addBtnText}>+ ADD NOTE</Text>
+              </TouchableOpacity>
+            </View>
+            {record.data.tripNotes?.map(note => (
+              <TouchableOpacity 
+                key={note.id} 
+                style={[styles.noteCard, { backgroundColor: colorScheme === 'dark' ? '#1a1d2e' : '#ffffff' }]}
+                onPress={() => openNoteModal(null, true, note)}
+                activeOpacity={0.7}
+              >
+                <View style={styles.noteIcon}>
+                  <IconSymbol name="note.text" size={16} color={theme.accent} />
+                </View>
+                <View style={styles.noteContent}>
+                  <Text style={styles.noteTitle}>{note.title}</Text>
+                  <Text style={styles.noteText} numberOfLines={2}>{note.text}</Text>
+                </View>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+
+        {record.data.days.map((day) => {
+          const isCollapsed = collapsedDays[day.id];
+
+          return (
+            <View key={day.id} style={styles.dayContainer}>
+              <TouchableOpacity 
+                style={styles.dayHeader} 
+                onPress={() => toggleDay(day.id)}
+                activeOpacity={0.7}
+              >
+                <View style={styles.dayTitleContainer}>
+                  <Text style={styles.dayTitle}>Day {day.dayNumber}</Text>
+                  <Text style={styles.dayDate}>{day.date}</Text>
+                </View>
+                <IconSymbol 
+                  name={isCollapsed ? "chevron.down" : "chevron.up"} 
+                  size={20} 
+                  color={theme.tertiary} 
+                />
+              </TouchableOpacity>
+
+              {!isCollapsed && (
+                <View style={styles.dayContent}>
+                  {/* Departure Time Slider */}
+                  <View style={{ marginBottom: 16, backgroundColor: 'rgba(46, 139, 88, 0.1)', borderRadius: 12, overflow: 'hidden' }}>
+                    <TouchableOpacity 
+                      style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 12 }}
+                      onPress={() => setActiveSliderDayId(activeSliderDayId === day.id ? null : day.id)}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={{ fontFamily: 'Inter_600SemiBold', fontSize: 14, color: theme.primary }}>Departure Time</Text>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                        <Text style={{ fontFamily: 'Inter_700Bold', fontSize: 14, color: theme.primary }}>
+                          {formatTime(day.departureTimeMin)}
+                        </Text>
+                        <IconSymbol name={activeSliderDayId === day.id ? "chevron.up" : "chevron.down"} size={16} color={theme.tertiary} />
+                      </View>
+                    </TouchableOpacity>
+                    
+                    {activeSliderDayId === day.id && (
+                      <View style={{ paddingHorizontal: 16, paddingBottom: 16 }}>
+                        <Slider 
+                          value={day.departureTimeMin} 
+                          min={0} 
+                          max={1410} // 11:30 PM max
+                          step={30} 
+                          onValueChange={(val) => setDepartureTime(day.id, val)}
+                        />
+                      </View>
+                    )}
+                  </View>
+
+                  {/* Notes Section */}
+                  <View style={styles.sectionHeader}>
+                    <Text style={styles.sectionTitle}>Day Notes</Text>
+                    <TouchableOpacity onPress={() => openNoteModal(day.id, false)}>
+                      <IconSymbol name="plus.circle.fill" size={26} color={theme.accent} />
+                    </TouchableOpacity>
+                  </View>
+                  
+                  {day.notes?.map(note => (
+                    <TouchableOpacity 
+                      key={note.id} 
+                      style={styles.noteCard}
+                      onPress={() => openNoteModal(day.id, false, note)}
+                      activeOpacity={0.7}
+                    >
+                      <View style={styles.noteIcon}>
+                        <IconSymbol name="note.text" size={16} color={theme.accent} />
+                      </View>
+                      <View style={styles.noteContent}>
+                        <Text style={styles.noteTitle}>{note.title}</Text>
+                        <Text style={styles.noteText} numberOfLines={2}>{note.text}</Text>
+                      </View>
+                    </TouchableOpacity>
+                  ))}
+
+                  {/* Activities Section */}
+                  <View style={styles.sectionHeader}>
+                    <Text style={styles.sectionTitle}>Itinerary</Text>
+                    <TouchableOpacity onPress={() => openActivityModal(day.id)}>
+                      <Text style={styles.addBtnText}>+ CUSTOM ACTIVITY</Text>
+                    </TouchableOpacity>
+                  </View>
+                  
+                  {day.nodes.map((node) => {
+                    if (node.type === 'ActivityGroup') {
+                      return (
+                        <View key={node.id}>
+                          <View style={styles.sectionHeader}>
+                            <Text style={styles.sectionTitle}>{node.title || 'Activities'}</Text>
+                            <TouchableOpacity onPress={(e) => openMenu(day.id, node.id, e)}>
+                              <IconSymbol name="ellipsis" size={24} color={theme.primary} />
+                            </TouchableOpacity>
+                          </View>
+                          {node.items?.map(item => renderOptionalItem(day.id, node.id, item))}
+                        </View>
+                      );
+                    }
+                    return renderNode(day.id, node);
+                  })}
+                </View>
+              )}
+            </View>
+          );
+        })}
+      </ScrollView>
+
+      {/* Floating Cost Bar */}
+      <View style={styles.costBar}>
+        <View>
+          <Text style={styles.costLabel}>Total Estimated Expense</Text>
+          <Text style={styles.costValue}>PKR {record.totalCost.toLocaleString()}</Text>
+        </View>
+        <IconSymbol name="creditcard.fill" size={32} color={theme.accent} />
+      </View>
+
+      {/* Modals */}
+      <Modal
+        visible={!!menuConfig}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setMenuConfig(null)}
+      >
+        <TouchableWithoutFeedback onPress={() => setMenuConfig(null)}>
+          <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0)' }}>
+            {menuConfig && (
+              <View 
+                style={[
+                  styles.dropdownMenu, 
+                  { 
+                    position: 'absolute', 
+                    top: menuConfig.y, 
+                    left: menuConfig.x,
+                    width: 140,
+                    padding: 4,
+                  }
+                ]}
+              >
+                <TouchableOpacity 
+                  style={[styles.dropdownItem, { padding: 8 }]}
+                  onPress={() => resetActivityGroup(menuConfig.dayId, menuConfig.groupId)}
+                >
+                  <Text style={[styles.dropdownText, { marginLeft: 0 }]}>Reset Activities</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+          </View>
+        </TouchableWithoutFeedback>
+      </Modal>
+
+      <Modal visible={noteModalVisible} animationType="slide" transparent onRequestClose={() => setNoteModalVisible(false)}>
+        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setNoteModalVisible(false)}>
+          <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+            <TouchableOpacity activeOpacity={1} style={styles.modalContent}>
+              <View style={styles.modalIndicator} />
+              <Text style={styles.modalTitle}>{editingNoteId ? 'Edit Note' : 'Add New Note'}</Text>
+              <TextInput 
+                style={styles.modalInput}
+                placeholder="Title (e.g. Hiking Gear)" placeholderTextColor={theme.tertiary}
+                value={noteTitle} onChangeText={setNoteTitle}
+              />
+              <TextInput 
+                style={[styles.modalInput, styles.modalTextArea]}
+                placeholder="What do you want to remember?" placeholderTextColor={theme.tertiary}
+                value={noteText} onChangeText={setNoteText} multiline
+              />
+              <View style={styles.modalActions}>
+                {editingNoteId && (
+                  <TouchableOpacity 
+                    style={[styles.cancelBtn, { flex: 0.5, backgroundColor: 'rgba(239, 68, 68, 0.1)' }]} 
+                    onPress={() => {
+                      if (editingNoteId) {
+                        setPendingDelete({ 
+                          type: 'note', 
+                          dayId: activeDayId, 
+                          id: editingNoteId, 
+                          isTrip: isTripNote 
+                        });
+                        setNoteModalVisible(false);
+                      }
+                    }}
+                  >
+                    <IconSymbol name="trash" size={20} color="#ef4444" />
+                  </TouchableOpacity>
+                )}
+                <TouchableOpacity style={styles.cancelBtn} onPress={() => setNoteModalVisible(false)}>
+                  <Text style={[styles.btnText, { color: theme.primary }]}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.saveBtn} onPress={saveNote}>
+                  <Text style={[styles.btnText, { color: '#fff' }]}>Save</Text>
+                </TouchableOpacity>
+              </View>
+            </TouchableOpacity>
+          </KeyboardAvoidingView>
+        </TouchableOpacity>
+      </Modal>
+
+      <Modal visible={activityModalVisible} animationType="slide" transparent onRequestClose={() => setActivityModalVisible(false)}>
+        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setActivityModalVisible(false)}>
+          <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+            <TouchableOpacity activeOpacity={1} style={styles.modalContent}>
+              <View style={styles.modalIndicator} />
+              <Text style={styles.modalTitle}>Add Custom Activity</Text>
+              <TextInput 
+                style={styles.modalInput}
+                placeholder="Activity Name (e.g. Sunrise Photo)" placeholderTextColor={theme.tertiary}
+                value={actName} onChangeText={setActName}
+              />
+              <TextInput 
+                style={styles.modalInput}
+                placeholder="Duration (e.g. 1.5 hrs)" placeholderTextColor={theme.tertiary}
+                value={actDuration} onChangeText={setActDuration}
+              />
+              <TextInput 
+                style={styles.modalInput}
+                placeholder="Estimated Cost (PKR)" placeholderTextColor={theme.tertiary}
+                value={actCost} onChangeText={setActCost} keyboardType="numeric"
+              />
+              <View style={styles.modalActions}>
+                {editingActivityId && (
+                  <TouchableOpacity 
+                    style={[styles.cancelBtn, { flex: 0.5, backgroundColor: 'rgba(239, 68, 68, 0.1)' }]} 
+                    onPress={() => {
+                      if (editingActivityId) {
+                        const node = record.data.days.find(d => d.id === activeDayId)?.nodes.find(n => n.id === editingActivityId);
+                        setPendingDelete({ 
+                          type: 'activity', 
+                          dayId: activeDayId, 
+                          id: editingActivityId, 
+                          cost: node?.cost || 0 
+                        });
+                        setActivityModalVisible(false);
+                      }
+                    }}
+                  >
+                    <IconSymbol name="trash" size={20} color="#ef4444" />
+                  </TouchableOpacity>
+                )}
+                <TouchableOpacity style={styles.cancelBtn} onPress={() => setActivityModalVisible(false)}>
+                  <Text style={[styles.btnText, { color: theme.primary }]}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.saveBtn} onPress={saveActivity}>
+                  <Text style={[styles.btnText, { color: '#fff' }]}>Save</Text>
+                </TouchableOpacity>
+              </View>
+            </TouchableOpacity>
+          </KeyboardAvoidingView>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* Confirmation Modal */}
+      <Modal visible={!!pendingDelete} animationType="fade" transparent onRequestClose={() => setPendingDelete(null)}>
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { padding: 24, alignItems: 'center' }]}>
+            <View style={{ backgroundColor: 'rgba(239, 68, 68, 0.1)', padding: 16, borderRadius: 30, marginBottom: 16 }}>
+              <IconSymbol name="exclamationmark.triangle.fill" size={32} color="#ef4444" />
+            </View>
+            <Text style={[styles.modalTitle, { textAlign: 'center', marginBottom: 8 }]}>
+              {pendingDelete?.type === 'note' ? 'Delete Note?' : 'Remove Activity?'}
+            </Text>
+            <Text style={{ textAlign: 'center', color: theme.tertiary, marginBottom: 24, fontSize: 15, lineHeight: 22 }}>
+              Are you sure you want to remove this item? This action cannot be undone and will update your timeline.
+            </Text>
+            <View style={{ flexDirection: 'row', gap: 12, width: '100%' }}>
+              <TouchableOpacity 
+                style={[styles.cancelBtn, { flex: 1 }]} 
+                onPress={() => setPendingDelete(null)}
+              >
+                <Text style={[styles.btnText, { color: theme.primary }]}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.saveBtn, { flex: 1, backgroundColor: '#ef4444' }]} 
+                onPress={() => {
+                  if (pendingDelete) {
+                    if (pendingDelete.type === 'note') {
+                      performNoteDeletion(pendingDelete.dayId, pendingDelete.isTrip || false, pendingDelete.id);
+                    } else if (pendingDelete.type === 'activity') {
+                      performActivityDeletion(pendingDelete.dayId!, pendingDelete.id, pendingDelete.cost || 0);
+                    }
+                    setPendingDelete(null);
+                  }
+                }}
+              >
+                <Text style={[styles.btnText, { color: '#fff' }]}>Delete</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+    </View>
+  );
+}
