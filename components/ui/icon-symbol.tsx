@@ -42,6 +42,10 @@ const MAPPING = {
   'creditcard.fill': 'credit-card',
   'pencil': 'edit',
   'plus.circle.fill': 'add-circle',
+  'person.fill': 'person',
+  'gearshape.fill': 'settings',
+  'rectangle.portrait.and.arrow.right': 'logout',
+  'trash.fill': 'delete',
 } as IconMapping;
 
 /**

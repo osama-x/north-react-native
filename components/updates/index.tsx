@@ -1,24 +1,25 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  ScrollView,
-  Image,
-  FlatList,
-  ActivityIndicator,
-  SafeAreaView,
-  Modal,
-  Share,
-  Platform,
-} from 'react-native';
-import { useColorScheme } from '@/hooks/use-color-scheme';
 import { IconSymbol } from '@/components/ui/icon-symbol';
-import { createStyles } from './updates.styles';
-import { UpdatesService } from './updates.service';
-import { NewsItem, RoadStatus, UpdateView } from './types';
 import { Colors } from '@/constants/theme';
+import { useColorScheme } from '@/hooks/use-color-scheme';
+import React, { useEffect, useMemo, useState } from 'react';
+import {
+  ActivityIndicator,
+  FlatList,
+  Image,
+  Modal,
+  RefreshControl,
+  ScrollView,
+  Share,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
+} from 'react-native';
+import { NewsItem, RoadStatus, UpdateView } from './types';
+import { UpdatesService } from './updates.service';
+import { createStyles } from './updates.styles';
 
+import { GlassBackground } from '@/components/ui/glass-background';
 import { NorthHeader } from '@/components/ui/north-header';
 
 export default function UpdatesComponent() {
@@ -29,29 +30,121 @@ export default function UpdatesComponent() {
   const [activeView, setActiveView] = useState<UpdateView>('News');
   const [news, setNews] = useState<NewsItem[]>([]);
   const [roads, setRoads] = useState<RoadStatus[]>([]);
+  const [topTags, setTopTags] = useState<string[]>(['All']);
   const [loading, setLoading] = useState(true);
   const [selectedTag, setSelectedTag] = useState('All');
-  
   const [selectedNews, setSelectedNews] = useState<NewsItem | null>(null);
 
+  // Pagination state
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [isFetchingMore, setIsFetchingMore] = useState(false);
+  const PAGE_SIZE = 5;
+
+  // Search state
+  const [isSearchVisible, setIsSearchVisible] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+
   useEffect(() => {
-    fetchData();
+    fetchData(1);
   }, []);
 
-  const fetchData = async () => {
-    setLoading(true);
-    const [newsData, roadsData] = await Promise.all([
-      UpdatesService.getNews(),
-      UpdatesService.getRoads(),
-    ]);
-    setNews(newsData);
-    setRoads(roadsData);
-    setLoading(false);
+  // Debounce effect for search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (searchQuery.trim().length >= 1) {
+        fetchSuggestions();
+      } else {
+        setSuggestions([]);
+      }
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  const fetchSuggestions = async () => {
+    setIsSearching(true);
+    const results = await UpdatesService.getTagSuggestions(searchQuery);
+    setSuggestions(results);
+    setIsSearching(false);
+  };
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    setPage(1);
+    setHasMore(true);
+    await fetchData(1, false, true); // Pass isRefresh = true
+    setRefreshing(false);
+  };
+
+  const handleSelectTag = (tag: string) => {
+    setSelectedTag(tag);
+    setIsSearchVisible(false);
+    setSearchQuery('');
+    setSuggestions([]);
+    // Reset pagination and fetch
+    setPage(1);
+    setHasMore(true);
+    fetchData(1);
+  };
+
+  const fetchData = async (pageNum: number, isMore = false, isRefresh = false) => {
+    if (isMore) {
+      setIsFetchingMore(true);
+    } else if (!isRefresh) {
+      setLoading(true);
+    }
+
+    try {
+      const [newsData, roadsData, tagsData] = await Promise.all([
+        UpdatesService.getNews(pageNum, PAGE_SIZE),
+        pageNum === 1 ? UpdatesService.getRoads() : Promise.resolve([]),
+        pageNum === 1 ? UpdatesService.getTopTags() : Promise.resolve([]),
+      ]);
+
+      if (newsData.length < PAGE_SIZE) {
+        setHasMore(false);
+      } else {
+        setHasMore(true);
+      }
+
+      if (isMore) {
+        setNews(prev => [...prev, ...newsData]);
+      } else {
+        setNews(newsData);
+        if (pageNum === 1) {
+          setRoads(roadsData);
+          if (tagsData.length > 0) setTopTags(tagsData);
+        }
+      }
+    } catch (e) {
+      console.error('Failed to fetch data:', e);
+    } finally {
+      setLoading(false);
+      setIsFetchingMore(false);
+    }
+  };
+
+  const handleLoadMore = () => {
+    if (!hasMore || isFetchingMore || loading || activeView !== 'News') return;
+
+    const nextPage = page + 1;
+    setPage(nextPage);
+    fetchData(nextPage, true);
   };
 
   const handleViewChange = (view: UpdateView) => {
     setActiveView(view);
     setSelectedTag('All');
+    // Reset pagination when switching views
+    if (view === 'News') {
+      setPage(1);
+      setHasMore(true);
+      fetchData(1);
+    }
   };
 
   const handleShare = async (item: NewsItem) => {
@@ -65,13 +158,8 @@ export default function UpdatesComponent() {
     }
   };
 
-  const allTags = useMemo(() => {
-    const tags = new Set<string>();
-    tags.add('All');
-    const data = activeView === 'News' ? news : roads;
-    data.forEach((item) => item.tags?.forEach((tag) => tags.add(tag)));
-    return Array.from(tags);
-  }, [news, roads, activeView]);
+  // We no longer derive tags from content, but use the fetched topTags
+  // const allTags = useMemo(() => { ... });
 
   const filteredNews = useMemo(() => {
     if (selectedTag === 'All') return news;
@@ -85,10 +173,10 @@ export default function UpdatesComponent() {
 
   const renderNewsItem = ({ item }: { item: NewsItem }) => {
     const hasThumbnail = item.thumbnail && item.thumbnail.length > 0;
-    
+
     return (
-      <TouchableOpacity 
-        style={styles.newsCard} 
+      <TouchableOpacity
+        style={styles.newsCard}
         activeOpacity={0.7}
         onPress={() => setSelectedNews(item)}
       >
@@ -120,8 +208,8 @@ export default function UpdatesComponent() {
       item.status === 'Open'
         ? '#2e8b58'
         : item.status === 'Caution'
-        ? '#f59e0b'
-        : '#ef4444';
+          ? '#f59e0b'
+          : '#ef4444';
 
     return (
       <View style={styles.roadCard}>
@@ -159,14 +247,58 @@ export default function UpdatesComponent() {
   };
 
   return (
-    <View style={styles.container}>
-      <NorthHeader 
+    <GlassBackground style={styles.container}>
+      <NorthHeader
         rightElement={
-          <TouchableOpacity style={styles.searchButton}>
+          <TouchableOpacity
+            style={styles.searchButton}
+            onPress={() => setIsSearchVisible(true)}
+          >
             <IconSymbol name="magnifyingglass" size={22} color="#ffffff" />
           </TouchableOpacity>
         }
       />
+
+      {/* Search Bar Overlay */}
+      {isSearchVisible && (
+        <View style={styles.searchBar}>
+          <TouchableOpacity
+            style={styles.closeSearchButton}
+            onPress={() => {
+              setIsSearchVisible(false);
+              setSearchQuery('');
+              setSuggestions([]);
+            }}
+          >
+            <IconSymbol name="chevron.left" size={24} color={theme.primary} />
+          </TouchableOpacity>
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search tags..."
+            placeholderTextColor={theme.tertiary}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            autoFocus
+          />
+          {isSearching && <ActivityIndicator size="small" color={theme.accent} style={{ marginRight: 10 }} />}
+        </View>
+      )}
+
+      {/* Suggestions List */}
+      {isSearchVisible && suggestions.length > 0 && (
+        <View style={styles.suggestionsContainer}>
+          {suggestions.map((tag) => (
+            <TouchableOpacity
+              key={tag}
+              style={styles.suggestionItem}
+              onPress={() => handleSelectTag(tag)}
+            >
+              <IconSymbol name="magnifyingglass" size={16} color={theme.tertiary} />
+              <Text style={styles.suggestionText}>{tag}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      )}
 
       {/* View Switcher */}
       <View style={styles.viewSwitcher}>
@@ -211,7 +343,7 @@ export default function UpdatesComponent() {
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.tagScroll}
         >
-          {allTags.map((tag) => (
+          {topTags.map((tag) => (
             <TouchableOpacity
               key={tag}
               style={[
@@ -243,8 +375,25 @@ export default function UpdatesComponent() {
           data={activeView === 'News' ? filteredNews : filteredRoads}
           renderItem={activeView === 'News' ? renderNewsItem : renderRoadItem}
           keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.listContent}
+          contentContainerStyle={[styles.listContent, { flexGrow: 1 }]}
           showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor={theme.accent}
+              colors={[theme.accent]}
+            />
+          }
+          onEndReached={handleLoadMore}
+          onEndReachedThreshold={0.5}
+          ListFooterComponent={
+            isFetchingMore ? (
+              <View style={{ paddingVertical: 20 }}>
+                <ActivityIndicator size="small" color={theme.accent} />
+              </View>
+            ) : null
+          }
           ListEmptyComponent={
             <View style={{ marginTop: 50, alignItems: 'center' }}>
               <Text style={{ color: theme.tertiary }}>No updates found.</Text>
@@ -269,7 +418,7 @@ export default function UpdatesComponent() {
                 <IconSymbol name="paperplane.fill" size={24} color={theme.primary} />
               </TouchableOpacity>
             </View>
-            
+
             <ScrollView showsVerticalScrollIndicator={false}>
               {selectedNews.image && selectedNews.image.length > 0 && (
                 <Image source={{ uri: selectedNews.image }} style={styles.detailImage} />
@@ -277,7 +426,7 @@ export default function UpdatesComponent() {
               <View style={styles.detailContentContainer}>
                 <Text style={styles.detailDate}>{selectedNews.dateTime}</Text>
                 <Text style={styles.detailTitle}>{selectedNews.title}</Text>
-                
+
                 <View style={styles.detailTagsRow}>
                   {selectedNews.tags.map(tag => (
                     <View key={tag} style={styles.detailTagBadge}>
@@ -286,18 +435,12 @@ export default function UpdatesComponent() {
                   ))}
                 </View>
 
-                {selectedNews.summary && (
-                  <View style={styles.summaryBox}>
-                    <Text style={styles.summaryText}>{selectedNews.summary}</Text>
-                  </View>
-                )}
-
                 <Text style={styles.fullContentText}>{selectedNews.content}</Text>
               </View>
             </ScrollView>
           </View>
         )}
       </Modal>
-    </View>
+    </GlassBackground>
   );
 }

@@ -9,7 +9,7 @@ export const createStyles = (colorScheme: 'light' | 'dark') => {
   return StyleSheet.create({
     container: {
       flex: 1,
-      backgroundColor: theme.background,
+      // backgroundColor: theme.background, // removed for GlassBackground
     },
 
     headerTitle: {
@@ -83,19 +83,23 @@ export const createStyles = (colorScheme: 'light' | 'dark') => {
       color: theme.accent,
       fontFamily: Typography.body.bold,
     },
+    scrollContent: {
+      paddingBottom: 120,
+    },
     listContent: {
       padding: 20,
+      paddingBottom: 120, // avoid tab bar overlap
     },
     newsCard: {
-      backgroundColor: colorScheme === 'dark' ? 'rgba(255, 255, 255, 0.03)' : '#ffffff',
+      backgroundColor: theme.glassCardBg,
       borderRadius: 20,
       padding: 16,
       marginBottom: 16,
       borderWidth: 1,
-      borderColor: theme.border,
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.05,
+      borderColor: theme.glassCardBorder,
+      shadowColor: theme.dark,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.1,
       shadowRadius: 8,
       elevation: 2,
     },
@@ -114,9 +118,11 @@ export const createStyles = (colorScheme: 'light' | 'dark') => {
       height: 80,
       borderRadius: 12,
       marginRight: 16,
-      backgroundColor: colorScheme === 'dark' ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)',
+      backgroundColor: theme.glassBg,
       justifyContent: 'center',
       alignItems: 'center',
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: theme.glassBorder,
     },
     newsInfo: {
       flex: 1,
@@ -155,12 +161,17 @@ export const createStyles = (colorScheme: 'light' | 'dark') => {
     },
     // Road Card
     roadCard: {
-      backgroundColor: colorScheme === 'dark' ? 'rgba(255, 255, 255, 0.03)' : '#ffffff',
+      backgroundColor: theme.glassCardBg,
       borderRadius: 20,
       padding: 16,
       marginBottom: 16,
       borderWidth: 1,
-      borderColor: theme.border,
+      borderColor: theme.glassCardBorder,
+      shadowColor: theme.dark,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.1,
+      shadowRadius: 8,
+      elevation: 2,
     },
     roadHeader: {
       flexDirection: 'row',
@@ -304,6 +315,59 @@ export const createStyles = (colorScheme: 'light' | 'dark') => {
       color: theme.primary,
       lineHeight: 26,
       opacity: 0.9,
+    },
+    // Search UI
+    searchBar: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      height: 60,
+      backgroundColor: theme.background,
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: 16,
+      zIndex: 100,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.border,
+    },
+    searchInput: {
+      flex: 1,
+      fontFamily: Typography.body.medium,
+      fontSize: 16,
+      color: theme.primary,
+      paddingHorizontal: 12,
+    },
+    closeSearchButton: {
+      padding: 8,
+    },
+    suggestionsContainer: {
+      position: 'absolute',
+      top: 60,
+      left: 0,
+      right: 0,
+      backgroundColor: theme.background,
+      zIndex: 99,
+      borderBottomLeftRadius: 16,
+      borderBottomRightRadius: 16,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 10 },
+      shadowOpacity: 0.2,
+      shadowRadius: 10,
+      elevation: 10,
+    },
+    suggestionItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      padding: 16,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.border,
+    },
+    suggestionText: {
+      fontFamily: Typography.body.medium,
+      fontSize: 15,
+      color: theme.primary,
+      marginLeft: 12,
     },
   });
 };

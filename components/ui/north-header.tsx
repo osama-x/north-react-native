@@ -3,7 +3,7 @@ import { StyleSheet, View, Text, Platform } from 'react-native';
 import { Image } from 'expo-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
-import { Colors, Typography } from '@/constants/theme';
+import { Typography } from '@/constants/theme';
 
 interface NorthHeaderProps {
   title?: string;

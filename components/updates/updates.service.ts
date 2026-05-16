@@ -1,6 +1,8 @@
+import { Config } from '@/constants/config';
 import { NewsItem, RoadStatus } from './types';
 
 const DUMMY_NEWS: NewsItem[] = [
+  // ... existing dummy data preserved for fallback
   {
     id: 'n1',
     dateTime: '2 hrs ago',
@@ -21,15 +23,6 @@ const DUMMY_NEWS: NewsItem[] = [
     thumbnail: 'https://images.unsplash.com/photo-1590523277543-a94d2e4eb00b?w=200',
     image: 'https://images.unsplash.com/photo-1590523277543-a94d2e4eb00b?w=800',
   },
-  {
-    id: 'n3',
-    dateTime: '1 day ago',
-    title: 'Karakoram Highway Expansion Complete',
-    summary: 'The section between Gilgit and Hunza is now a dual carriageway, significantly reducing travel time for commuters and tourists alike.',
-    content: 'The multi-year project to expand the KKH is finally complete. The new dual carriageway significantly improves safety and reduces the drive from Gilgit to Hunza by 45 minutes. Expect smooth roads and improved signage.',
-    tags: ['Roads', 'KKH', 'Infrastructure'],
-    // REMOVED THUMBNAIL TO TEST NO-IMAGE SCENARIO
-  }
 ];
 
 const DUMMY_ROADS: RoadStatus[] = [
@@ -49,7 +42,6 @@ const DUMMY_ROADS: RoadStatus[] = [
     lastUpdated: '1 hr ago',
     details: 'Closed for winter. Will reopen in June 2026.',
     tags: ['N15', 'HighPass'],
-    // NO IMAGE
   },
   {
     id: 'r3',
@@ -62,11 +54,105 @@ const DUMMY_ROADS: RoadStatus[] = [
   }
 ];
 
+const formatTimeAgo = (dateString: string): string => {
+  if (!dateString) return 'Just now';
+  
+  const date = new Date(dateString);
+  const now = new Date();
+  const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+  
+  if (seconds < 60) return 'Just now';
+  
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m ago`;
+  
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `${days}d ago`;
+  
+  return date.toLocaleDateString();
+};
+
 export const UpdatesService = {
-  getNews: async (): Promise<NewsItem[]> => {
-    return new Promise((resolve) => setTimeout(() => resolve(DUMMY_NEWS), 800));
+  getNews: async (page = 1, pageSize = 10): Promise<NewsItem[]> => {
+    if (!Config.USE_API) {
+      return new Promise((resolve) => setTimeout(() => resolve(DUMMY_NEWS), 800));
+    }
+
+    try {
+      const response = await fetch(`${Config.API_BASE_URL}/news/?page=${page}&page_size=${pageSize}`, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        },
+      });
+      const data = await response.json();
+
+      // Map API items to our NewsItem interface
+      return (data.items || []).map((item: any) => ({
+        id: item.id?.toString() || Math.random().toString(),
+        title: item.title,
+        content: item.content,
+        summary: item.summary || item.content.substring(0, 100) + '...',
+        dateTime: formatTimeAgo(item.created_at || item.published_at || item.date || item.timestamp),
+        tags: item.tags || [],
+        thumbnail: item.thumbnail_url || item.image_url,
+        image: item.image_url || item.thumbnail_url,
+      }));
+    } catch (error) {
+      console.error('Error fetching news:', error);
+      return DUMMY_NEWS;
+    }
   },
+
   getRoads: async (): Promise<RoadStatus[]> => {
+    // Road API can be added similarly when available
     return new Promise((resolve) => setTimeout(() => resolve(DUMMY_ROADS), 800));
+  },
+
+  getTopTags: async (limit = 10): Promise<string[]> => {
+    if (!Config.USE_API) {
+      return ['All', 'Weather', 'Skardu', 'Roads', 'Tourism', 'Alert'];
+    }
+
+    try {
+      const response = await fetch(`${Config.API_BASE_URL}/news/tags/top?limit=${limit}`, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        },
+      });
+      const data = await response.json();
+      return ['All', ...data.map((item: any) => item.tag)];
+    } catch (error) {
+      console.error('Error fetching top tags:', error);
+      return ['All', 'Weather', 'Skardu', 'Roads'];
+    }
+  },
+
+  getTagSuggestions: async (query: string, limit = 5): Promise<string[]> => {
+    if (!Config.USE_API || !query) {
+      return [];
+    }
+
+    try {
+      const response = await fetch(`${Config.API_BASE_URL}/news/tags/suggestions?q=${encodeURIComponent(query)}&limit=${limit}`, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        },
+      });
+      const data = await response.json();
+      // The API returns a simple array of strings [ "tag1", "tag2" ]
+      return Array.isArray(data) ? data : [];
+    } catch (error) {
+      console.error('Error fetching tag suggestions:', error);
+      return [];
+    }
   }
 };

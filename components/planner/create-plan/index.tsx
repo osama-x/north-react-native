@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -14,6 +14,7 @@ import { IconSymbol } from '@/components/ui/icon-symbol';
 import { createStyles } from './create-plan.styles';
 import { TripConfig } from './types';
 import { Colors } from '@/constants/theme';
+import { LocationService, LocationSuggestion } from '../location.service';
 
 interface Props {
   initialDestination?: string;
@@ -75,6 +76,74 @@ export default function CreatePlanComponent({ initialDestination, onBack, onCont
     },
     transportMode: 'Car',
   });
+
+  // Search state
+  const [sourceSearch, setSourceSearch] = useState(config.sourceCity);
+  const [destSearch, setDestSearch] = useState(config.destinationCity);
+  const [sourceSuggestions, setSourceSuggestions] = useState<LocationSuggestion[]>([]);
+  const [destSuggestions, setDestSuggestions] = useState<LocationSuggestion[]>([]);
+  const [activeField, setActiveField] = useState<'source' | 'destination' | null>(null);
+  const [dropdownLayout, setDropdownLayout] = useState({ x: 0, y: 0, width: 0 });
+  const sourceInputRef = useRef<View>(null);
+  const destInputRef = useRef<View>(null);
+
+  const measureAndOpen = (field: 'source' | 'destination') => {
+    const ref = field === 'source' ? sourceInputRef : destInputRef;
+    ref.current?.measureInWindow((x, y, width, height) => {
+      setDropdownLayout({ x, y: y + height + 4, width });
+      setActiveField(field);
+    });
+  };
+
+  // Debounce effect for Source Search — only triggers on text change
+  useEffect(() => {
+    if (!activeField) return;
+    const timer = setTimeout(() => {
+      if (sourceSearch.trim().length >= 2) {
+        fetchSuggestions('source', sourceSearch);
+      } else {
+        setSourceSuggestions([]);
+      }
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [sourceSearch]); // Only sourceSearch, not activeField
+
+  // Debounce effect for Destination Search — only triggers on text change
+  useEffect(() => {
+    if (!activeField) return;
+    const timer = setTimeout(() => {
+      if (destSearch.trim().length >= 2) {
+        fetchSuggestions('destination', destSearch);
+      } else {
+        setDestSuggestions([]);
+      }
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [destSearch]); // Only destSearch, not activeField
+
+  const fetchSuggestions = async (type: 'source' | 'destination', query: string) => {
+    const onlyDestinations = type === 'destination';
+    const limit = type === 'destination' ? 5 : 10;
+    const results = await LocationService.searchLocations(query, onlyDestinations, limit);
+    if (type === 'source') {
+      setSourceSuggestions(results);
+    } else {
+      setDestSuggestions(results);
+    }
+  };
+
+  const handleSelectLocation = (type: 'source' | 'destination', location: LocationSuggestion) => {
+    if (type === 'source') {
+      setConfig(prev => ({ ...prev, sourceCity: location.name }));
+      setSourceSearch(location.name);
+      setSourceSuggestions([]);
+    } else {
+      setConfig(prev => ({ ...prev, destinationCity: location.name }));
+      setDestSearch(location.name);
+      setDestSuggestions([]);
+    }
+    setActiveField(null);
+  };
 
   const updateTravelers = (type: keyof TripConfig['travelers'], delta: number) => {
     setConfig(prev => ({
@@ -162,23 +231,29 @@ export default function CreatePlanComponent({ initialDestination, onBack, onCont
         <View style={styles.row}>
           <View style={[styles.inputContainer, styles.flex1]}>
             <Text style={styles.label}>Source City</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="e.g. Islamabad"
-              placeholderTextColor={theme.tertiary}
-              value={config.sourceCity}
-              onChangeText={(text) => setConfig(prev => ({ ...prev, sourceCity: text }))}
-            />
+            <View ref={sourceInputRef}>
+              <TextInput
+                style={styles.input}
+                placeholder="e.g. Islamabad"
+                placeholderTextColor={theme.tertiary}
+                value={sourceSearch}
+                onFocus={() => measureAndOpen('source')}
+                onChangeText={setSourceSearch}
+              />
+            </View>
           </View>
           <View style={[styles.inputContainer, styles.flex1]}>
             <Text style={styles.label}>Destination City</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="e.g. Skardu"
-              placeholderTextColor={theme.tertiary}
-              value={config.destinationCity}
-              onChangeText={(text) => setConfig(prev => ({ ...prev, destinationCity: text }))}
-            />
+            <View ref={destInputRef}>
+              <TextInput
+                style={styles.input}
+                placeholder="e.g. Skardu"
+                placeholderTextColor={theme.tertiary}
+                value={destSearch}
+                onFocus={() => measureAndOpen('destination')}
+                onChangeText={setDestSearch}
+              />
+            </View>
           </View>
         </View>
 
@@ -263,6 +338,46 @@ export default function CreatePlanComponent({ initialDestination, onBack, onCont
           <Text style={styles.continueButtonText}>Continue to Itinerary</Text>
         </TouchableOpacity>
       </ScrollView>
+
+      {/* Suggestions overlay — sibling to ScrollView, no Modal blocking */}
+      {!!activeField && (activeField === 'source' ? sourceSuggestions : destSuggestions).length > 0 && (
+        <View
+          style={{
+            position: 'absolute',
+            left: dropdownLayout.x,
+            top: dropdownLayout.y,
+            width: dropdownLayout.width,
+            backgroundColor: colorScheme === 'dark' ? '#052e16' : '#ffffff',
+            borderRadius: 16,
+            borderWidth: 1,
+            borderColor: colorScheme === 'dark' ? '#166534' : '#d1d5db',
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 8 },
+            shadowOpacity: 0.4,
+            shadowRadius: 16,
+            elevation: 20,
+            zIndex: 9999,
+            overflow: 'hidden',
+          }}
+        >
+          {(activeField === 'source' ? sourceSuggestions : destSuggestions).map((loc, index, arr) => (
+            <TouchableOpacity
+              key={loc.id}
+              onPress={() => handleSelectLocation(activeField, loc)}
+              style={{
+                paddingHorizontal: 16,
+                paddingVertical: 14,
+                borderBottomWidth: index < arr.length - 1 ? 1 : 0,
+                borderBottomColor: colorScheme === 'dark' ? '#166534' : '#f3f4f6',
+              }}
+            >
+              <Text style={{ fontSize: 15, fontWeight: '600', color: colorScheme === 'dark' ? '#ffffff' : '#111827' }}>
+                {loc.name}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      )}
     </View>
   );
 }

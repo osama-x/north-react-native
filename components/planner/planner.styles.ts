@@ -9,7 +9,7 @@ export const createStyles = (colorScheme: 'light' | 'dark') => {
   return StyleSheet.create({
     container: {
       flex: 1,
-      backgroundColor: theme.background,
+      // background handled globally by GlassBackground
     },
 
     headerTitle: {
@@ -41,13 +41,18 @@ export const createStyles = (colorScheme: 'light' | 'dark') => {
     myPlanCard: {
       padding: 18,
       borderRadius: 16,
-      backgroundColor: theme.accent + '15', // Subtle accent background
+      backgroundColor: theme.glassCardBg,
       borderWidth: 1.5,
-      borderColor: theme.accent,
+      borderColor: theme.glassCardBorder,
       marginBottom: 12,
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
+      shadowColor: theme.dark,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.1,
+      shadowRadius: 8,
+      elevation: 3,
     },
     myPlanTitle: {
       fontSize: 16,
@@ -59,12 +64,17 @@ export const createStyles = (colorScheme: 'light' | 'dark') => {
     },
     featuredCard: {
       width: width * 0.65,
-      backgroundColor: theme.lightGray,
+      backgroundColor: theme.glassCardBg,
       borderRadius: 24,
       padding: 20,
       marginRight: 16,
       borderWidth: 1,
-      borderColor: theme.border,
+      borderColor: theme.glassCardBorder,
+      shadowColor: theme.dark,
+      shadowOffset: { width: 0, height: 8 },
+      shadowOpacity: 0.1,
+      shadowRadius: 12,
+      elevation: 4,
     },
     featuredTitle: {
       fontSize: 18,
@@ -80,22 +90,22 @@ export const createStyles = (colorScheme: 'light' | 'dark') => {
     generateButton: {
       marginTop: 30,
       marginHorizontal: 20,
-      backgroundColor: theme.accent,
+      backgroundColor: theme.primary, // white
       borderRadius: 20,
       height: 70,
       justifyContent: 'center',
       alignItems: 'center',
-      shadowColor: theme.accent,
-      shadowOffset: { width: 0, height: 4 },
+      shadowColor: theme.dark,
+      shadowOffset: { width: 0, height: 6 },
       shadowOpacity: 0.3,
-      shadowRadius: 10,
-      elevation: 6,
-      marginBottom: 40,
+      shadowRadius: 12,
+      elevation: 8,
+      marginBottom: 120, // extra padding for bottom nav
     },
     generateButtonText: {
       fontSize: 18,
       fontWeight: '800',
-      color: '#ffffff',
+      color: theme.background, // dark green text for contrast
       textTransform: 'lowercase',
     },
   });

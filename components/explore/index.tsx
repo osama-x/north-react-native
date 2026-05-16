@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import { GlassBackground } from '@/components/ui/glass-background';
 import { createStyles } from './explore.styles';
 import { ExploreService } from './explore.service';
 import { FeaturedPlan, Destination } from './types';
@@ -90,7 +91,7 @@ export default function ExploreComponent({ onDestinationPress }: Props) {
   );
 
   return (
-    <View style={styles.container}>
+    <GlassBackground style={styles.container}>
       <NorthHeader 
         rightElement={
           <TouchableOpacity 
@@ -161,6 +162,6 @@ export default function ExploreComponent({ onDestinationPress }: Props) {
           )}
         </View>
       </ScrollView>
-    </View>
+    </GlassBackground>
   );
 }

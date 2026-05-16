@@ -13,7 +13,7 @@ export const createStyles = (colorScheme: 'light' | 'dark') => {
     },
     scrollContent: {
       padding: 24,
-      paddingBottom: 40,
+      paddingBottom: 120, // extra padding to avoid tab bar overlap
     },
     header: {
       marginBottom: 32,
@@ -176,13 +176,13 @@ export const createStyles = (colorScheme: 'light' | 'dark') => {
       flex: 1,
     },
     continueButton: {
-      backgroundColor: colorScheme === 'dark' ? theme.accent : '#010411', // Fixed dark color for button
+      backgroundColor: theme.primary, // white
       borderRadius: 20,
       height: 64,
       justifyContent: 'center',
       alignItems: 'center',
       marginTop: 10,
-      shadowColor: colorScheme === 'dark' ? theme.accent : '#000',
+      shadowColor: theme.dark,
       shadowOffset: { width: 0, height: 4 },
       shadowOpacity: 0.2,
       shadowRadius: 10,
@@ -191,8 +191,39 @@ export const createStyles = (colorScheme: 'light' | 'dark') => {
     continueButtonText: {
       fontSize: 18,
       fontWeight: '800',
-      color: '#ffffff',
+      color: theme.background, // dark green for contrast
     },
-
+    // Location Suggestions
+    suggestionsContainer: {
+      position: 'absolute',
+      top: 72,
+      left: 0,
+      right: 0,
+      backgroundColor: colorScheme === 'dark' ? '#020617' : '#ffffff', // Extremely solid Slate 950 or White
+      borderRadius: 16,
+      borderWidth: 2,
+      borderColor: colorScheme === 'dark' ? '#1e293b' : '#e2e8f0',
+      maxHeight: 250,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 20 },
+      shadowOpacity: 0.5,
+      shadowRadius: 30,
+      elevation: 25,
+      zIndex: 100000, // Even higher
+      opacity: 1, // Explicitly opaque
+      overflow: 'visible', // Allow shadow to show
+    },
+    suggestionItem: {
+      paddingHorizontal: 16,
+      paddingVertical: 14,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.border,
+      backgroundColor: 'transparent',
+    },
+    suggestionName: {
+      fontSize: 15,
+      fontWeight: '600',
+      color: theme.primary,
+    },
   });
 };

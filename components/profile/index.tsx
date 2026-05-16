@@ -6,6 +6,7 @@ import { Colors } from '@/constants/theme';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { dbService, SavedPlanRecord } from '@/database';
 import { NorthHeader } from '@/components/ui/north-header';
+import { GlassBackground } from '@/components/ui/glass-background';
 
 interface Props {
   onSavedPlanPress?: (id: string) => void;
@@ -55,7 +56,7 @@ export default function ProfileComponent({ onSavedPlanPress }: Props) {
   );
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.background }]}>
+    <GlassBackground style={styles.container}>
       <NorthHeader 
         title="Profile" 
         rightElement={
@@ -93,7 +94,7 @@ export default function ProfileComponent({ onSavedPlanPress }: Props) {
             plans.map((plan) => (
               <TouchableOpacity 
                 key={plan.id} 
-                style={[styles.planCard, { backgroundColor: theme.accent + '10', borderColor: theme.accent }]}
+                style={[styles.planCard, { backgroundColor: theme.glassCardBg, borderColor: theme.glassCardBorder }]}
                 activeOpacity={0.7}
                 onPress={() => onSavedPlanPress?.(plan.id)}
               >
@@ -235,7 +236,7 @@ export default function ProfileComponent({ onSavedPlanPress }: Props) {
           </View>
         </TouchableWithoutFeedback>
       </Modal>
-    </View>
+    </GlassBackground>
   );
 }
 
@@ -249,7 +250,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   scrollContent: {
-    paddingBottom: 40,
+    paddingBottom: 120,
   },
   userInfoSection: {
     alignItems: 'center',
@@ -304,6 +305,11 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     borderWidth: 1,
     marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
   },
   planInfo: {
     flex: 1,

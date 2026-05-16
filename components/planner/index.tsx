@@ -19,6 +19,7 @@ import { Colors } from '@/constants/theme';
 import { dbService, SavedPlanRecord } from '@/database';
 import { NorthHeader } from '@/components/ui/north-header';
 import { Config } from '@/constants/config';
+import { GlassBackground } from '@/components/ui/glass-background';
 
 interface Props {
   onGeneratePress?: () => void;
@@ -117,7 +118,7 @@ export default function PlannerComponent({ onGeneratePress, onSavedPlanPress }: 
   );
 
   return (
-    <View style={styles.container}>
+    <GlassBackground style={styles.container}>
       <NorthHeader
         rightElement={
           <TouchableOpacity style={styles.myPlansButton}>
@@ -289,6 +290,6 @@ export default function PlannerComponent({ onGeneratePress, onSavedPlanPress }: 
           </View>
         </TouchableWithoutFeedback>
       </Modal>
-    </View>
+    </GlassBackground>
   );
 }
