@@ -11,4 +11,5 @@ export interface TripConfig {
     infants: number;
   };
   transportMode: 'Car' | 'Bus' | 'Flight';
+  drivingHoursPerDay?: number; // Only for Car mode
 }

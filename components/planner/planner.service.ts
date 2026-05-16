@@ -1,43 +1,98 @@
 import { Config } from '@/constants/config';
 import { MyPlan, FeaturedPlan } from './types';
-
-const DUMMY_MY_PLANS: MyPlan[] = [
-  {
-    id: 'm1',
-    title: 'Skardu 7 day September',
-    status: 'Saved',
-    createdAt: '2024-04-20',
-  },
-  {
-    id: 'm2',
-    title: 'Mushkpuri 2 days weekend',
-    status: 'Draft',
-    createdAt: '2024-04-25',
-  },
-];
+import { TripItinerary, ItineraryDay, ItineraryNode, BackendFindRouteResponse } from './itinerary/types';
+import { TripConfig } from './create-plan/types';
 
 const DUMMY_FEATURED: FeaturedPlan[] = [
-  {
-    id: 'f1',
-    title: '10 Day Ultimate North',
-    duration: '10 Days',
-    description: 'Comprehensive tour covering Hunza and Skardu.',
-  },
-  {
-    id: 'f2',
-    title: '3 Day Visit to Nathiagali',
-    duration: '3 Days',
-    description: 'Quick weekend getaway.',
-  },
+  { id: 'f1', title: '10 Day Ultimate North', duration: '10 Days', description: 'Comprehensive tour covering Hunza and Skardu.' },
+  { id: 'f2', title: '3 Day Visit to Nathiagali', duration: '3 Days', description: 'Quick weekend getaway.' },
 ];
 
+function minutesToTime(baseMinutes: number, offsetMin: number): string {
+  const total = baseMinutes + offsetMin;
+  const h = Math.floor(total / 60) % 24;
+  const m = total % 60;
+  return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+}
+
+function mapResponseToItinerary(response: BackendFindRouteResponse, config: TripConfig): TripItinerary {
+  const BASE_START_MIN = 8 * 60; // 8:00 AM
+
+  const days: ItineraryDay[] = response.days.map((backendDay, dayIndex) => {
+    let cursorMin = 0;
+    const nodes: ItineraryNode[] = backendDay.activities.map((act, actIndex) => {
+      const startTime = minutesToTime(BASE_START_MIN, cursorMin);
+      const endTime = minutesToTime(BASE_START_MIN, cursorMin + act.time_required_min);
+      const node: ItineraryNode = {
+        id: `day${backendDay.day}-act${actIndex}`,
+        type: act.type === 'travel' ? 'Travel' : act.type === 'stay' ? 'Stop' : 'Activity',
+        time: startTime,
+        arrivalTime: endTime,
+        title: act.title,
+        description: act.description || '',
+        duration: act.time_required_min >= 60
+          ? `${Math.floor(act.time_required_min / 60)}h ${act.time_required_min % 60 > 0 ? `${act.time_required_min % 60}m` : ''}`.trim()
+          : `${act.time_required_min}m`,
+        cost: act.cost,
+        distance_km: act.distance_km,
+        difficulty: act.difficulty,
+        timeRequiredMin: act.time_required_min,
+        toLocation: act.to_location,
+        isFixed: !act.is_editable,
+        isOptional: act.is_editable,
+        isSelected: true,
+      };
+      cursorMin += act.time_required_min;
+      return node;
+    });
+
+    const date = new Date(config.departureDate);
+    date.setDate(date.getDate() + dayIndex);
+
+    return {
+      id: `day-${backendDay.day}`,
+      dayNumber: backendDay.day,
+      date: date.toLocaleDateString('en-PK', { weekday: 'short', day: '2-digit', month: 'short' }),
+      departureTimeMin: BASE_START_MIN,
+      nodes,
+      stayOptions: [],
+      notes: [],
+    };
+  });
+
+  return {
+    id: `trip-${Date.now()}`,
+    title: `${config.sourceCity} → ${config.destinationCity}`,
+    days,
+  };
+}
+
 export const PlannerService = {
-  getMyPlans: async (): Promise<MyPlan[]> => {
-    if (Config.USE_API) return [];
-    return new Promise((resolve) => setTimeout(() => resolve(DUMMY_MY_PLANS), 500));
-  },
   getFeaturedPlans: async (): Promise<FeaturedPlan[]> => {
     if (Config.USE_API) return [];
     return new Promise((resolve) => setTimeout(() => resolve(DUMMY_FEATURED), 500));
-  }
+  },
+
+  findRoute: async (config: TripConfig): Promise<TripItinerary> => {
+    const body = {
+      source_name: config.sourceCity,
+      destination_name: config.destinationCity,
+      driving_hours_per_day: config.drivingHoursPerDay ?? 8,
+      max_days: config.duration,
+    };
+
+    const response = await fetch(`${Config.API_BASE_URL}/planning/find-route`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify(body),
+    });
+
+    if (!response.ok) {
+      const err = await response.text();
+      throw new Error(`Route API failed: ${err}`);
+    }
+
+    const data: BackendFindRouteResponse = await response.json();
+    return mapResponseToItinerary(data, config);
+  },
 };

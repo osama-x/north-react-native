@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, TouchableOpacity, SafeAreaView, Alert, BackHandler } from 'react-native';
+import { View, Text, TouchableOpacity, SafeAreaView, Alert, BackHandler, Platform } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import PlannerComponent from '@/components/planner';
 import CreatePlanComponent from '@/components/planner/create-plan';
@@ -8,23 +8,23 @@ import ItineraryComponent from '@/components/planner/itinerary';
 import SavePlanComponent from '@/components/planner/save-plan';
 import SavedPlanViewerComponent from '@/components/planner/saved-plan-viewer';
 import { TripItinerary } from '@/components/planner/itinerary/types';
+import { TripConfig } from '@/components/planner/create-plan/types';
 import { dbService } from '@/database';
 
-type PlanView = 'list' | 'config' | 'loading' | 'final' | 'save' | 'viewSaved';
+type PlanView = 'config' | 'loading' | 'final' | 'save' | 'viewSaved';
 
 export default function PlanScreen() {
   const navigation = useNavigation();
   const [viewStack, setViewStack] = useState<PlanView[]>(['config']);
   const view = viewStack[viewStack.length - 1];
   
-  const [config, setConfig] = useState<any>(null);
+  const [config, setConfig] = useState<TripConfig | null>(null);
   const [totalCost, setTotalCost] = useState(0);
   const [currentItinerary, setCurrentItinerary] = useState<TripItinerary | null>(null);
+  const [generatedItinerary, setGeneratedItinerary] = useState<TripItinerary | null>(null);
   const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null);
 
-  const pushView = (newView: PlanView) => {
-    setViewStack(prev => [...prev, newView]);
-  };
+  const pushView = (newView: PlanView) => setViewStack(prev => [...prev, newView]);
 
   const popView = useCallback(() => {
     if (viewStack.length > 1) {
@@ -39,46 +39,36 @@ export default function PlanScreen() {
     setConfig(null);
     setTotalCost(0);
     setCurrentItinerary(null);
+    setGeneratedItinerary(null);
     setSelectedPlanId(null);
   }, []);
 
-  // Handle hardware back button
   useEffect(() => {
-    const onBackPress = () => {
-      return popView();
-    };
+    const onBackPress = () => popView();
     BackHandler.addEventListener('hardwareBackPress', onBackPress);
     return () => BackHandler.removeEventListener('hardwareBackPress', onBackPress);
   }, [popView]);
 
-  // Handle tab re-press
   useEffect(() => {
     const unsubscribe = navigation.addListener('tabPress', (e) => {
-      // ONLY intercept if we are ALREADY focused on this tab (re-press)
       if (navigation.isFocused() && view !== 'config') {
         e.preventDefault();
-
         Alert.alert(
           'Discard Progress?',
-          'Are you sure you want to discard your current progress and return to the start?',
+          'Are you sure you want to discard your current progress?',
           [
             { text: 'Cancel', style: 'cancel' },
-            { 
-              text: 'Discard', 
-              style: 'destructive',
-              onPress: resetToMain
-            },
+            { text: 'Discard', style: 'destructive', onPress: resetToMain },
           ]
         );
       }
     });
-
     return unsubscribe;
   }, [navigation, view, resetToMain]);
 
   if (view === 'config') {
     return (
-      <CreatePlanComponent 
+      <CreatePlanComponent
         onContinue={(data) => {
           setConfig(data);
           pushView('loading');
@@ -87,18 +77,49 @@ export default function PlanScreen() {
     );
   }
 
-  if (view === 'loading') {
+  if (view === 'loading' && config) {
     return (
-      <LoadingSimulationComponent 
-        onComplete={() => pushView('final')}
+      <LoadingSimulationComponent
+        config={config}
+        onComplete={(itinerary) => {
+          setGeneratedItinerary(itinerary);
+          pushView('final');
+        }}
+        onError={(msg) => {
+          Alert.alert('Could Not Generate Route', msg, [
+            { text: 'Go Back', onPress: popView },
+          ]);
+        }}
       />
     );
   }
 
   if (view === 'final') {
+    const handleBack = () => {
+      const doBack = () => {
+        setGeneratedItinerary(null);
+        setViewStack(['config']);
+      };
+      if (Platform.OS === 'web') {
+        if (window.confirm('This will discard the current itinerary and return you to trip settings. Continue?')) {
+          doBack();
+        }
+      } else {
+        Alert.alert(
+          'Go Back to Settings?',
+          'This will discard the current itinerary and return you to trip settings.',
+          [
+            { text: 'Stay', style: 'cancel' },
+            { text: 'Go Back', style: 'destructive', onPress: doBack },
+          ]
+        );
+      }
+    };
+
     return (
-      <ItineraryComponent 
-        onBack={popView}
+      <ItineraryComponent
+        onBack={handleBack}
+        initialItinerary={generatedItinerary ?? undefined}
         onSave={(cost, itinerary) => {
           setTotalCost(cost);
           setCurrentItinerary(itinerary);
@@ -110,7 +131,7 @@ export default function PlanScreen() {
 
   if (view === 'save') {
     return (
-      <SavePlanComponent 
+      <SavePlanComponent
         totalCost={totalCost}
         onBack={popView}
         onSave={async (tripName) => {
@@ -118,9 +139,7 @@ export default function PlanScreen() {
             const planToSave = { ...currentItinerary, title: tripName };
             try {
               await dbService.savePlan(planToSave, totalCost);
-              console.log('Saved trip to SQLite:', tripName);
             } catch (e) {
-              console.error('Failed to save trip', e);
               Alert.alert('Error', 'Failed to save the trip to local storage.');
               return;
             }
@@ -133,7 +152,7 @@ export default function PlanScreen() {
 
   if (view === 'viewSaved' && selectedPlanId) {
     return (
-      <SavedPlanViewerComponent 
+      <SavedPlanViewerComponent
         planId={selectedPlanId}
         onBack={() => {
           setSelectedPlanId(null);
@@ -143,9 +162,9 @@ export default function PlanScreen() {
     );
   }
 
-  // Default view is always config now
+  // Fallback
   return (
-    <CreatePlanComponent 
+    <CreatePlanComponent
       onContinue={(data) => {
         setConfig(data);
         pushView('loading');

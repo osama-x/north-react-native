@@ -32,10 +32,11 @@ export const createStyles = (colorScheme: 'light' | 'dark') => {
       marginTop: 8,
     },
     label: {
-      fontSize: 14,
+      fontSize: 12,
       fontWeight: '700',
       color: theme.tertiary,
       marginBottom: 8,
+      letterSpacing: 0.5,
       textTransform: 'uppercase',
     },
     inputContainer: {
@@ -49,6 +50,16 @@ export const createStyles = (colorScheme: 'light' | 'dark') => {
       color: theme.primary,
       borderWidth: 1,
       borderColor: theme.border,
+    },
+    dateInputBox: {
+      backgroundColor: colorScheme === 'dark' ? 'rgba(255, 255, 255, 0.05)' : theme.lightGray,
+      borderRadius: 16,
+      padding: 16,
+      borderWidth: 1,
+      borderColor: theme.border,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
     },
     row: {
       flexDirection: 'row',

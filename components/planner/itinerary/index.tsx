@@ -34,21 +34,31 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
 interface Props {
   onSave?: (totalCost: number, itinerary: TripItinerary) => void;
   onBack?: () => void;
+  initialItinerary?: TripItinerary;
 }
 
-export default function ItineraryComponent({ onSave, onBack }: Props) {
+export default function ItineraryComponent({ onSave, onBack, initialItinerary }: Props) {
   const colorScheme = useColorScheme();
   const styles = useMemo(() => createStyles(colorScheme ?? 'light'), [colorScheme]);
   const theme = Colors[colorScheme ?? 'light'];
 
-  const [itinerary, setItinerary] = useState<TripItinerary | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [itinerary, setItinerary] = useState<TripItinerary | null>(initialItinerary ?? null);
+  const [loading, setLoading] = useState(!initialItinerary);
   const [collapsedDays, setCollapsedDays] = useState<Record<string, boolean>>({});
   const [menuConfig, setMenuConfig] = useState<{ dayId: string; groupId: string; x: number; y: number } | null>(null);
   const [activeSliderDayId, setActiveSliderDayId] = useState<string | null>(null);
 
   useEffect(() => {
-    loadData();
+    if (initialItinerary) {
+      // Pre-collapse all days except the first
+      const initialCollapsed: Record<string, boolean> = {};
+      initialItinerary.days.forEach((day, index) => {
+        initialCollapsed[day.id] = index !== 0;
+      });
+      setCollapsedDays(initialCollapsed);
+    } else {
+      loadData();
+    }
   }, []);
 
   const loadData = async () => {
