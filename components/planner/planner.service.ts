@@ -20,9 +20,16 @@ function mapResponseToItinerary(response: BackendFindRouteResponse, config: Trip
 
   const days: ItineraryDay[] = response.days.map((backendDay, dayIndex) => {
     let cursorMin = 0;
-    const nodes: ItineraryNode[] = backendDay.activities.map((act, actIndex) => {
+    const fixedNodes: ItineraryNode[] = [];
+    const editableItems: ItineraryNode[] = [];
+
+    backendDay.activities.forEach((act, actIndex) => {
       const startTime = minutesToTime(BASE_START_MIN, cursorMin);
       const endTime = minutesToTime(BASE_START_MIN, cursorMin + act.time_required_min);
+      const durationStr = act.time_required_min >= 60
+        ? `${Math.floor(act.time_required_min / 60)}h${act.time_required_min % 60 > 0 ? ` ${act.time_required_min % 60}m` : ''}`
+        : `${act.time_required_min}m`;
+
       const node: ItineraryNode = {
         id: `day${backendDay.day}-act${actIndex}`,
         type: act.type === 'travel' ? 'Travel' : act.type === 'stay' ? 'Stop' : 'Activity',
@@ -30,9 +37,7 @@ function mapResponseToItinerary(response: BackendFindRouteResponse, config: Trip
         arrivalTime: endTime,
         title: act.title,
         description: act.description || '',
-        duration: act.time_required_min >= 60
-          ? `${Math.floor(act.time_required_min / 60)}h ${act.time_required_min % 60 > 0 ? `${act.time_required_min % 60}m` : ''}`.trim()
-          : `${act.time_required_min}m`,
+        duration: durationStr,
         cost: act.cost,
         distance_km: act.distance_km,
         difficulty: act.difficulty,
@@ -42,9 +47,38 @@ function mapResponseToItinerary(response: BackendFindRouteResponse, config: Trip
         isOptional: act.is_editable,
         isSelected: true,
       };
-      cursorMin += act.time_required_min;
-      return node;
+
+      if (act.is_editable) {
+        // Editable activities go into the ActivityGroup as optional items
+        editableItems.push(node);
+      } else {
+        // Fixed travel/stay nodes go directly onto the timeline
+        fixedNodes.push(node);
+        cursorMin += act.time_required_min;
+      }
     });
+
+    // Build final nodes: fixed nodes + one ActivityGroup for all editables
+    const nodes: ItineraryNode[] = [...fixedNodes];
+    if (editableItems.length > 0) {
+      const group: ItineraryNode = {
+        id: `day${backendDay.day}-activities`,
+        type: 'ActivityGroup',
+        time: minutesToTime(BASE_START_MIN, cursorMin),
+        arrivalTime: '',
+        title: 'Activities',
+        description: '',
+        duration: '',
+        cost: editableItems.reduce((sum, i) => sum + i.cost, 0),
+        timeRequiredMin: editableItems.reduce((sum, i) => sum + i.timeRequiredMin, 0),
+        isFixed: false,
+        isOptional: true,
+        isSelected: true,
+        items: editableItems,
+        originalItems: JSON.parse(JSON.stringify(editableItems)), // backup for reset
+      };
+      nodes.push(group);
+    }
 
     const date = new Date(config.departureDate);
     date.setDate(date.getDate() + dayIndex);
