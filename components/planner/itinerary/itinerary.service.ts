@@ -24,7 +24,7 @@ export const FOOD_TIERS = {
   },
   standard: {
     label: 'Standard Dining',
-    description: 'Mix of local restaurants & roadside eateries ',
+    description: 'Mix of local restaurants & roadside eateries',
     perPersonMin: 1650,
     perPersonMax: 2000,
     perPersonPerDay: 1825, // average of min and max

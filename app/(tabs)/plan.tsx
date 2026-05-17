@@ -10,6 +10,8 @@ import SavedPlanViewerComponent from '@/components/planner/saved-plan-viewer';
 import { TripItinerary } from '@/components/planner/itinerary/types';
 import { TripConfig } from '@/components/planner/create-plan/types';
 import { dbService } from '@/database';
+import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Colors } from '@/constants/theme';
 
 type PlanView = 'config' | 'loading' | 'final' | 'save' | 'viewSaved';
 
@@ -17,6 +19,9 @@ export default function PlanScreen() {
   const navigation = useNavigation();
   const [viewStack, setViewStack] = useState<PlanView[]>(['config']);
   const view = viewStack[viewStack.length - 1];
+  
+  const colorScheme = useColorScheme();
+  const theme = Colors[colorScheme ?? 'light'];
   
   const [config, setConfig] = useState<TripConfig | null>(null);
   const [totalCost, setTotalCost] = useState(0);
@@ -66,7 +71,99 @@ export default function PlanScreen() {
     return unsubscribe;
   }, [navigation, view, resetToMain]);
 
-  if (view === 'config') {
+  const renderContent = () => {
+    if (view === 'config') {
+      return (
+        <CreatePlanComponent
+          onContinue={(data) => {
+            setConfig(data);
+            pushView('loading');
+          }}
+        />
+      );
+    }
+
+    if (view === 'loading' && config) {
+      return (
+        <LoadingSimulationComponent
+          config={config}
+          onComplete={(itinerary) => {
+            setGeneratedItinerary(itinerary);
+            pushView('final');
+          }}
+          onBack={popView}
+        />
+      );
+    }
+
+    if (view === 'final') {
+      const handleBack = () => {
+        const doBack = () => {
+          setGeneratedItinerary(null);
+          setViewStack(['config']);
+        };
+        if (Platform.OS === 'web') {
+          if (window.confirm('This will discard the current itinerary and return you to trip settings. Continue?')) {
+            doBack();
+          }
+        } else {
+          Alert.alert(
+            'Go Back to Settings?',
+            'This will discard the current itinerary and return you to trip settings.',
+            [
+              { text: 'Stay', style: 'cancel' },
+              { text: 'Go Back', style: 'destructive', onPress: doBack },
+            ]
+          );
+        }
+      };
+
+      return (
+        <ItineraryComponent
+          onBack={handleBack}
+          initialItinerary={generatedItinerary ?? undefined}
+          onSave={(cost, itinerary) => {
+            setTotalCost(cost);
+            setCurrentItinerary(itinerary);
+            pushView('save');
+          }}
+        />
+      );
+    }
+
+    if (view === 'save') {
+      return (
+        <SavePlanComponent
+          totalCost={totalCost}
+          onBack={popView}
+          onSave={async (tripName) => {
+            if (currentItinerary) {
+              const planToSave = { ...currentItinerary, title: tripName };
+              try {
+                await dbService.savePlan(planToSave, totalCost);
+              } catch (e) {
+                Alert.alert('Error', 'Failed to save the trip to local storage.');
+                return;
+              }
+            }
+            resetToMain();
+          }}
+        />
+      );
+    }
+
+    if (view === 'viewSaved' && selectedPlanId) {
+      return (
+        <SavedPlanViewerComponent
+          planId={selectedPlanId}
+          onBack={() => {
+            setSelectedPlanId(null);
+            popView();
+          }}
+        />
+      );
+    }
+
     return (
       <CreatePlanComponent
         onContinue={(data) => {
@@ -75,96 +172,11 @@ export default function PlanScreen() {
         }}
       />
     );
-  }
+  };
 
-  if (view === 'loading' && config) {
-    return (
-      <LoadingSimulationComponent
-        config={config}
-        onComplete={(itinerary) => {
-          setGeneratedItinerary(itinerary);
-          pushView('final');
-        }}
-        onBack={popView}
-      />
-    );
-  }
-
-  if (view === 'final') {
-    const handleBack = () => {
-      const doBack = () => {
-        setGeneratedItinerary(null);
-        setViewStack(['config']);
-      };
-      if (Platform.OS === 'web') {
-        if (window.confirm('This will discard the current itinerary and return you to trip settings. Continue?')) {
-          doBack();
-        }
-      } else {
-        Alert.alert(
-          'Go Back to Settings?',
-          'This will discard the current itinerary and return you to trip settings.',
-          [
-            { text: 'Stay', style: 'cancel' },
-            { text: 'Go Back', style: 'destructive', onPress: doBack },
-          ]
-        );
-      }
-    };
-
-    return (
-      <ItineraryComponent
-        onBack={handleBack}
-        initialItinerary={generatedItinerary ?? undefined}
-        onSave={(cost, itinerary) => {
-          setTotalCost(cost);
-          setCurrentItinerary(itinerary);
-          pushView('save');
-        }}
-      />
-    );
-  }
-
-  if (view === 'save') {
-    return (
-      <SavePlanComponent
-        totalCost={totalCost}
-        onBack={popView}
-        onSave={async (tripName) => {
-          if (currentItinerary) {
-            const planToSave = { ...currentItinerary, title: tripName };
-            try {
-              await dbService.savePlan(planToSave, totalCost);
-            } catch (e) {
-              Alert.alert('Error', 'Failed to save the trip to local storage.');
-              return;
-            }
-          }
-          resetToMain();
-        }}
-      />
-    );
-  }
-
-  if (view === 'viewSaved' && selectedPlanId) {
-    return (
-      <SavedPlanViewerComponent
-        planId={selectedPlanId}
-        onBack={() => {
-          setSelectedPlanId(null);
-          popView();
-        }}
-      />
-    );
-  }
-
-  // Fallback
   return (
-    <CreatePlanComponent
-      onContinue={(data) => {
-        setConfig(data);
-        pushView('loading');
-      }}
-    />
+    <View style={{ flex: 1, backgroundColor: theme.background }}>
+      {renderContent()}
+    </View>
   );
 }

@@ -43,6 +43,8 @@ export default function TabLayout() {
 
   return (
     <Tabs
+      // @ts-ignore - sceneContainerStyle is supported by BottomTabNavigator but not explicitly typed on expo-router's Tabs wrapper
+      sceneContainerStyle={{ backgroundColor: theme.background }}
       screenOptions={{
         tabBarActiveTintColor: theme.tint,
         headerShown: false,

@@ -7,6 +7,7 @@ import 'react-native-reanimated';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Colors } from '@/constants/theme';
 
 // FONT IMPORTS
 import { 
@@ -29,6 +30,7 @@ SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
+  const theme = Colors[colorScheme ?? 'light'];
 
   const [loaded, error] = useFonts({
     'Inter-Regular': Inter_400Regular,
@@ -55,7 +57,7 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-        <Stack screenOptions={{ headerShown: false }}>
+        <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: theme.background } }}>
           <Stack.Screen name="index" />
           <Stack.Screen name="login" />
           <Stack.Screen name="signup" />
