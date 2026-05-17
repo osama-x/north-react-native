@@ -24,7 +24,7 @@ import { NorthHeader } from '@/components/ui/north-header';
 import { dbService, SavedPlanRecord } from '@/database';
 import { TripItinerary, ItineraryDay, ItineraryNode, DayNote } from '../itinerary/types';
 import { createStyles } from './saved-plan-viewer.styles';
-import { formatTime } from '../itinerary/itinerary.service';
+import { formatTime, recalculatePlanFuelCosts } from '../itinerary/itinerary.service';
 import { Slider } from '@/components/ui/slider';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -262,6 +262,35 @@ export default function SavedPlanViewerComponent({ planId, onBack }: Props) {
 
   const [record, setRecord] = useState<SavedPlanRecord | null>(null);
   const [loading, setLoading] = useState(true);
+  const [showFloatingCost, setShowFloatingCost] = useState(false);
+  const costBarAnim = React.useRef(new Animated.Value(0)).current;
+
+  const handleScroll = (event: any) => {
+    const y = event.nativeEvent.contentOffset.y;
+    const shouldShow = y > 240;
+    if (shouldShow !== showFloatingCost) {
+      setShowFloatingCost(shouldShow);
+      Animated.timing(costBarAnim, {
+        toValue: shouldShow ? 1 : 0,
+        duration: 350,
+        easing: Easing.bezier(0.25, 1, 0.5, 1),
+        useNativeDriver: true,
+      }).start();
+    }
+  };
+
+  const formatCompactCost = (value: number): string => {
+    if (value >= 100000) {
+      const lacs = value / 100000;
+      const formatted = lacs % 1 === 0 ? lacs.toFixed(0) : parseFloat(lacs.toFixed(2)).toString();
+      return `${formatted} lac${lacs > 1 ? 's' : ''}`;
+    } else if (value >= 1000) {
+      const k = value / 1000;
+      const formatted = k % 1 === 0 ? k.toFixed(0) : parseFloat(k.toFixed(2)).toString();
+      return `${formatted}K`;
+    }
+    return value.toString();
+  };
   
   // Modals state
   const [noteModalVisible, setNoteModalVisible] = useState(false);
@@ -293,6 +322,7 @@ export default function SavedPlanViewerComponent({ planId, onBack }: Props) {
     cost?: number 
   } | null>(null);
   const [showSavedMessage, setShowSavedMessage] = useState(false);
+  const [todosCollapsed, setTodosCollapsed] = useState(false);
 
   useEffect(() => {
     loadPlan();
@@ -301,16 +331,23 @@ export default function SavedPlanViewerComponent({ planId, onBack }: Props) {
   const loadPlan = async () => {
     setLoading(true);
     const plan = await dbService.getPlanById(planId);
-    setRecord(plan);
-    
     if (plan) {
+      const { updatedPlan, totalCost } = recalculatePlanFuelCosts(plan.data);
+      const updatedRecord: SavedPlanRecord = {
+        ...plan,
+        data: updatedPlan,
+        totalCost: totalCost
+      };
+      setRecord(updatedRecord);
+      
       const initialCollapsed: Record<string, boolean> = {};
-      plan.data.days.forEach((day: ItineraryDay, index: number) => {
+      updatedPlan.days.forEach((day: ItineraryDay, index: number) => {
         initialCollapsed[day.id] = index !== 0;
       });
       setCollapsedDays(initialCollapsed);
+    } else {
+      setRecord(null);
     }
-    
     setLoading(false);
   };
 
@@ -513,6 +550,18 @@ export default function SavedPlanViewerComponent({ planId, onBack }: Props) {
   };
 
   // --- Notes ---
+  const toggleTodoCompletion = (todoId: string) => {
+    if (!record) return;
+    const updatedData = { ...record.data };
+    const notes = updatedData.tripNotes ? [...updatedData.tripNotes] : [];
+    const nIdx = notes.findIndex(n => n.id === todoId);
+    if (nIdx > -1) {
+      notes[nIdx] = { ...notes[nIdx], completed: !notes[nIdx].completed };
+    }
+    updatedData.tripNotes = notes;
+    saveChanges(updatedData);
+  };
+
   const openNoteModal = (dayId: string | null, isTrip: boolean, note?: DayNote) => {
     setActiveDayId(dayId);
     setIsTripNote(isTrip);
@@ -714,6 +763,11 @@ export default function SavedPlanViewerComponent({ planId, onBack }: Props) {
             You will arrive at {node.toLocation} at {node.arrivalTime}
           </Text>
         )}
+        {node.cost > 0 && node.type !== 'Travel' && (
+          <Text style={[styles.durationText, { color: theme.accent, fontWeight: '700', marginTop: 4 }]}>
+            Cost: PKR {node.cost.toLocaleString()}
+          </Text>
+        )}
       </TouchableOpacity>
     );
   };
@@ -816,7 +870,12 @@ export default function SavedPlanViewerComponent({ planId, onBack }: Props) {
         </View>
       )}
 
-      <ScrollView contentContainerStyle={[styles.scrollContent, { paddingBottom: 220 }]} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: 220 }]} 
+        showsVerticalScrollIndicator={false}
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
+      >
         {/* Editor Header */}
         <View style={styles.editorHeader}>
           <TextInput 
@@ -910,32 +969,139 @@ export default function SavedPlanViewerComponent({ planId, onBack }: Props) {
             </View>
           </Modal>
           
-          {/* Trip Notes Section */}
+          {/* Trip To Dos Section */}
           <View style={{ marginTop: 24, paddingTop: 20, borderTopWidth: 1, borderTopColor: theme.border }}>
             <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Trip Notes</Text>
-              <TouchableOpacity onPress={() => openNoteModal(null, true)}>
-                <Text style={styles.addBtnText}>+ ADD NOTE</Text>
-              </TouchableOpacity>
-            </View>
-            {record.data.tripNotes?.map(note => (
               <TouchableOpacity 
-                key={note.id} 
-                style={[styles.noteCard, { backgroundColor: colorScheme === 'dark' ? '#1a1d2e' : '#ffffff' }]}
-                onPress={() => openNoteModal(null, true, note)}
+                style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }} 
+                onPress={() => {
+                  LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+                  setTodosCollapsed(!todosCollapsed);
+                }}
                 activeOpacity={0.7}
               >
-                <View style={styles.noteIcon}>
-                  <IconSymbol name="note.text" size={16} color={theme.accent} />
-                </View>
-                <View style={styles.noteContent}>
-                  <Text style={styles.noteTitle}>{note.title}</Text>
-                  <Text style={styles.noteText} numberOfLines={2}>{note.text}</Text>
-                </View>
+                <Text style={styles.sectionTitle}>Trip To Dos</Text>
+                <IconSymbol 
+                  name={todosCollapsed ? "chevron.down" : "chevron.up"} 
+                  size={16} 
+                  color={theme.tertiary} 
+                />
               </TouchableOpacity>
-            ))}
+              <TouchableOpacity onPress={() => openNoteModal(null, true)}>
+                <Text style={[styles.addBtnText, { color: colorScheme === 'dark' ? '#c084fc' : '#ffffff' }]}>+ ADD TO DO</Text>
+              </TouchableOpacity>
+            </View>
+
+            {!todosCollapsed && (
+              <View>
+                {(!record.data.tripNotes || record.data.tripNotes.length === 0) ? (
+                  <Text style={{ color: colorScheme === 'dark' ? theme.tertiary : 'rgba(255, 255, 255, 0.8)', fontSize: 13, fontStyle: 'italic', paddingHorizontal: 4, marginBottom: 12 }}>
+                    No To Dos yet. Tap + ADD TO DO to create one.
+                  </Text>
+                ) : (
+                  record.data.tripNotes.map(note => {
+                    const isDone = !!note.completed;
+                    return (
+                      <View 
+                        key={note.id} 
+                        style={[
+                          styles.todoCard, 
+                          isDone && styles.todoCardCompleted
+                        ]}
+                      >
+                        {/* Checkbox button */}
+                        <TouchableOpacity 
+                          style={styles.todoCheckbox}
+                          onPress={() => toggleTodoCompletion(note.id)}
+                          activeOpacity={0.6}
+                        >
+                          <IconSymbol 
+                            name={isDone ? "checkmark.square.fill" : "square"} 
+                            size={24} 
+                            color={colorScheme === 'dark' ? '#c084fc' : '#8b5cf6'} 
+                          />
+                        </TouchableOpacity>
+
+                        {/* Editable Content clickable area */}
+                        <TouchableOpacity 
+                          style={styles.todoContent}
+                          onPress={() => openNoteModal(null, true, note)}
+                          activeOpacity={0.7}
+                        >
+                          <Text style={[styles.todoTitle, isDone && styles.todoTitleCompleted]}>
+                            {note.title}
+                          </Text>
+                          {note.text ? (
+                            <Text style={[styles.todoText, isDone && styles.todoTextCompleted]} numberOfLines={2}>
+                              {note.text}
+                            </Text>
+                          ) : null}
+                        </TouchableOpacity>
+                      </View>
+                    );
+                  })
+                )}
+              </View>
+            )}
           </View>
         </View>
+
+        {/* Standout Cost Breakdown Card at the top of the plan list */}
+        {record && (
+          <View style={styles.costBreakdownCard}>
+            <View style={styles.breakdownHeader}>
+              <Text style={styles.breakdownTitle}>Estimated Cost</Text>
+              <Text style={styles.breakdownRange}>
+                Rs. {formatCompactCost(Math.round(record.totalCost * 0.9))} - {formatCompactCost(Math.round(record.totalCost * 1.1))}
+              </Text>
+            </View>
+            <View style={styles.breakdownGrid}>
+              {/* Travel */}
+              <View style={styles.breakdownItem}>
+                <View style={styles.breakdownIconContainer}>
+                  <IconSymbol name="car.fill" size={16} color={theme.accent} />
+                </View>
+                <View style={styles.breakdownTextContainer}>
+                  <Text style={styles.breakdownLabel}>Travel</Text>
+                  <Text style={styles.breakdownValue}>PKR {formatCompactCost(Math.round(record.totalCost * 0.4))}</Text>
+                </View>
+              </View>
+
+              {/* Accommodation */}
+              <View style={styles.breakdownItem}>
+                <View style={styles.breakdownIconContainer}>
+                  <IconSymbol name="bed.double.fill" size={16} color={theme.accent} />
+                </View>
+                <View style={styles.breakdownTextContainer}>
+                  <Text style={styles.breakdownLabel}>Stay</Text>
+                  <Text style={styles.breakdownValue}>PKR {formatCompactCost(Math.round(record.totalCost * 0.35))}</Text>
+                </View>
+              </View>
+
+              {/* Food */}
+              <View style={styles.breakdownItem}>
+                <View style={styles.breakdownIconContainer}>
+                  <IconSymbol name="fork.knife" size={16} color={theme.accent} />
+                </View>
+                <View style={styles.breakdownTextContainer}>
+                  <Text style={styles.breakdownLabel}>Food</Text>
+                  <Text style={styles.breakdownValue}>PKR {formatCompactCost(Math.round(record.totalCost * 0.15))}</Text>
+                </View>
+              </View>
+
+              {/* Others */}
+              <View style={styles.breakdownItem}>
+                <View style={styles.breakdownIconContainer}>
+                  <IconSymbol name="ellipsis" size={16} color={theme.accent} />
+                </View>
+                <View style={styles.breakdownTextContainer}>
+                  <Text style={styles.breakdownLabel}>Others</Text>
+                  <Text style={styles.breakdownValue}>PKR {formatCompactCost(Math.round(record.totalCost * 0.1))}</Text>
+                </View>
+              </View>
+            </View>
+          </View>
+        )}
 
         {record.data.days.map((day) => {
           const isCollapsed = collapsedDays[day.id];
@@ -954,25 +1120,25 @@ export default function SavedPlanViewerComponent({ planId, onBack }: Props) {
                 <IconSymbol 
                   name={isCollapsed ? "chevron.down" : "chevron.up"} 
                   size={20} 
-                  color={theme.tertiary} 
+                  color={colorScheme === 'dark' ? theme.tertiary : 'rgba(255, 255, 255, 0.8)'} 
                 />
               </TouchableOpacity>
 
               {!isCollapsed && (
                 <View style={styles.dayContent}>
                   {/* Departure Time Slider */}
-                  <View style={{ marginBottom: 16, backgroundColor: 'rgba(46, 139, 88, 0.1)', borderRadius: 12, overflow: 'hidden' }}>
+                  <View style={{ marginBottom: 16, backgroundColor: colorScheme === 'dark' ? 'rgba(255, 255, 255, 0.05)' : 'rgba(255, 255, 255, 0.1)', borderRadius: 12, overflow: 'hidden' }}>
                     <TouchableOpacity 
                       style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 12 }}
                       onPress={() => setActiveSliderDayId(activeSliderDayId === day.id ? null : day.id)}
                       activeOpacity={0.7}
                     >
-                      <Text style={{ fontFamily: 'Inter_600SemiBold', fontSize: 14, color: theme.primary }}>Departure Time</Text>
+                      <Text style={{ fontFamily: 'Inter_600SemiBold', fontSize: 14, color: colorScheme === 'dark' ? theme.primary : '#ffffff' }}>Departure Time</Text>
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                        <Text style={{ fontFamily: 'Inter_700Bold', fontSize: 14, color: theme.primary }}>
+                        <Text style={{ fontFamily: 'Inter_700Bold', fontSize: 14, color: colorScheme === 'dark' ? theme.primary : '#ffffff' }}>
                           {formatTime(day.departureTimeMin)}
                         </Text>
-                        <IconSymbol name={activeSliderDayId === day.id ? "chevron.up" : "chevron.down"} size={16} color={theme.tertiary} />
+                        <IconSymbol name={activeSliderDayId === day.id ? "chevron.up" : "chevron.down"} size={16} color={colorScheme === 'dark' ? theme.tertiary : 'rgba(255, 255, 255, 0.8)'} />
                       </View>
                     </TouchableOpacity>
                     
@@ -993,7 +1159,7 @@ export default function SavedPlanViewerComponent({ planId, onBack }: Props) {
                   <View style={styles.sectionHeader}>
                     <Text style={styles.sectionTitle}>Day Notes</Text>
                     <TouchableOpacity onPress={() => openNoteModal(day.id, false)}>
-                      <IconSymbol name="plus.circle.fill" size={26} color={theme.accent} />
+                      <IconSymbol name="plus.circle.fill" size={26} color={colorScheme === 'dark' ? theme.accent : '#ffffff'} />
                     </TouchableOpacity>
                   </View>
                   
@@ -1029,7 +1195,7 @@ export default function SavedPlanViewerComponent({ planId, onBack }: Props) {
                           <View style={styles.sectionHeader}>
                             <Text style={styles.sectionTitle}>{node.title || 'Activities'}</Text>
                             <TouchableOpacity onPress={(e) => openMenu(day.id, node.id, e)}>
-                              <IconSymbol name="ellipsis" size={24} color={theme.primary} />
+                              <IconSymbol name="ellipsis" size={24} color={colorScheme === 'dark' ? theme.primary : '#ffffff'} />
                             </TouchableOpacity>
                           </View>
                           {node.items?.map(item => renderOptionalItem(day.id, node.id, item))}
@@ -1046,13 +1212,31 @@ export default function SavedPlanViewerComponent({ planId, onBack }: Props) {
       </ScrollView>
 
       {/* Floating Cost Bar */}
-      <View style={styles.costBar}>
-        <View>
-          <Text style={styles.costLabel}>Total Estimated Expense</Text>
-          <Text style={styles.costValue}>PKR {record.totalCost.toLocaleString()}</Text>
-        </View>
-        <IconSymbol name="creditcard.fill" size={32} color={theme.accent} />
-      </View>
+      {record && (
+        <Animated.View 
+          pointerEvents={showFloatingCost ? "auto" : "none"}
+          style={[
+            styles.costBar,
+            {
+              opacity: costBarAnim,
+              transform: [
+                {
+                  translateY: costBarAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [120, 0],
+                  })
+                }
+              ]
+            }
+          ]}
+        >
+          <View>
+            <Text style={styles.costLabel}>Total Estimated Expense</Text>
+            <Text style={styles.costValue}>PKR {record.totalCost.toLocaleString()}</Text>
+          </View>
+          <IconSymbol name="creditcard.fill" size={32} color={theme.accent} />
+        </Animated.View>
+      )}
 
       {/* Modals */}
       <Modal
@@ -1093,15 +1277,22 @@ export default function SavedPlanViewerComponent({ planId, onBack }: Props) {
           <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
             <TouchableOpacity activeOpacity={1} style={styles.modalContent}>
               <View style={styles.modalIndicator} />
-              <Text style={styles.modalTitle}>{editingNoteId ? 'Edit Note' : 'Add New Note'}</Text>
+              <Text style={styles.modalTitle}>
+                {isTripNote 
+                  ? (editingNoteId ? 'Edit To Do' : 'Add New To Do') 
+                  : (editingNoteId ? 'Edit Note' : 'Add New Note')
+                }
+              </Text>
               <TextInput 
                 style={styles.modalInput}
-                placeholder="Title (e.g. Hiking Gear)" placeholderTextColor={theme.tertiary}
+                placeholder={isTripNote ? "To Do (e.g. Buy sunscreen)" : "Title (e.g. Hiking Gear)"} 
+                placeholderTextColor={theme.tertiary}
                 value={noteTitle} onChangeText={setNoteTitle}
               />
               <TextInput 
                 style={[styles.modalInput, styles.modalTextArea]}
-                placeholder="What do you want to remember?" placeholderTextColor={theme.tertiary}
+                placeholder={isTripNote ? "What do you need to do? (Optional details)" : "What do you want to remember?"} 
+                placeholderTextColor={theme.tertiary}
                 value={noteText} onChangeText={setNoteText} multiline
               />
               <View style={styles.modalActions}>
@@ -1204,7 +1395,10 @@ export default function SavedPlanViewerComponent({ planId, onBack }: Props) {
               <IconSymbol name="exclamationmark.triangle.fill" size={32} color="#ef4444" />
             </View>
             <Text style={[styles.modalTitle, { textAlign: 'center', marginBottom: 8 }]}>
-              {pendingDelete?.type === 'note' ? 'Delete Note?' : 'Remove Activity?'}
+              {pendingDelete?.type === 'note' 
+                ? (pendingDelete.isTrip ? 'Delete To Do?' : 'Delete Note?') 
+                : 'Remove Activity?'
+              }
             </Text>
             <Text style={{ textAlign: 'center', color: theme.tertiary, marginBottom: 24, fontSize: 15, lineHeight: 22 }}>
               Are you sure you want to remove this item? This action cannot be undone and will update your timeline.

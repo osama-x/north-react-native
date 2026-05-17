@@ -75,12 +75,12 @@ export const createStyles = (colorScheme: 'light' | 'dark') => {
     planTitle: {
       fontSize: 22,
       fontWeight: '800',
-      color: theme.primary,
+      color: '#ffffff',
       marginBottom: 8,
     },
     planDescription: {
       fontSize: 13,
-      color: theme.tertiary,
+      color: 'rgba(255, 255, 255, 0.8)',
       lineHeight: 18,
     },
     destinationGrid: {
@@ -125,12 +125,12 @@ export const createStyles = (colorScheme: 'light' | 'dark') => {
     destinationName: {
       fontSize: 24,
       fontWeight: '800',
-      color: theme.primary,
+      color: '#ffffff',
       marginBottom: 4,
     },
     destinationTagline: {
       fontSize: 15,
-      color: theme.tertiary,
+      color: 'rgba(255, 255, 255, 0.8)',
       fontWeight: '600',
       marginBottom: 12,
     },
@@ -142,25 +142,25 @@ export const createStyles = (colorScheme: 'light' | 'dark') => {
     ratingText: {
       fontSize: 14,
       fontWeight: '700',
-      color: theme.primary,
+      color: '#ffffff',
     },
     searchInputContainer: {
       marginHorizontal: 20,
       marginVertical: 10,
       flexDirection: 'row',
       alignItems: 'center',
-      backgroundColor: theme.glassCardBg,
+      backgroundColor: colorScheme === 'dark' ? theme.glassCardBg : '#ffffff',
       borderRadius: 16,
       paddingHorizontal: 15,
       height: 50,
       borderWidth: 1,
-      borderColor: theme.glassCardBorder,
+      borderColor: colorScheme === 'dark' ? theme.glassCardBorder : '#cbd5e1',
     },
     searchInput: {
       flex: 1,
       marginLeft: 10,
       fontSize: 16,
-      color: theme.primary,
+      color: colorScheme === 'dark' ? '#ffffff' : '#0f172a',
     },
   });
 };

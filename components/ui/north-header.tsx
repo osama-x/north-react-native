@@ -72,19 +72,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   leftGroup: {
-    flex: 2,
+    flex: 3,
     flexDirection: 'row',
     alignItems: 'center',
     height: '100%',
   },
   centerContainer: {
-    flex: 6,
+    flex: 4,
     height: '100%',
     alignItems: 'center',
     justifyContent: 'center',
   },
   rightContainer: {
-    flex: 2,
+    flex: 3,
     height: '100%',
     alignItems: 'flex-end',
     justifyContent: 'center',

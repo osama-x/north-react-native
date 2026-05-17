@@ -85,7 +85,7 @@ export default function PlannerComponent({ onGeneratePress, onSavedPlanPress }: 
         onPress={() => onSavedPlanPress?.(plan.id)}
       >
         <Text style={styles.myPlanTitle}>{plan.title}</Text>
-        <Text style={{ fontSize: 12, color: theme.tertiary, marginTop: 4 }}>
+        <Text style={{ fontSize: 12, color: colorScheme === 'dark' ? theme.tertiary : 'rgba(255, 255, 255, 0.8)', marginTop: 4 }}>
           {new Date(plan.startDate).toLocaleDateString()} • PKR {plan.totalCost.toLocaleString()}
         </Text>
       </TouchableOpacity>
@@ -100,14 +100,14 @@ export default function PlannerComponent({ onGeneratePress, onSavedPlanPress }: 
           setMenuPlan(plan);
         }}
       >
-        <IconSymbol name="ellipsis" size={20} color={theme.secondary} />
+        <IconSymbol name="ellipsis" size={20} color={colorScheme === 'dark' ? theme.secondary : 'rgba(255, 255, 255, 0.8)'} />
       </TouchableOpacity>
     </View>
   );
 
   const renderFeaturedCard = (plan: FeaturedPlan) => (
     <TouchableOpacity key={plan.id} style={styles.featuredCard} activeOpacity={0.8}>
-      <Text style={{ fontSize: 11, fontWeight: '700', color: theme.accent, marginBottom: 4 }}>
+      <Text style={{ fontSize: 11, fontWeight: '700', color: colorScheme === 'dark' ? theme.accent : '#fbd561', marginBottom: 4 }}>
         {plan.duration}
       </Text>
       <Text style={styles.featuredTitle}>{plan.title}</Text>

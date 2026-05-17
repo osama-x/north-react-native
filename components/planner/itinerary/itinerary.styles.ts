@@ -1,4 +1,4 @@
-import { StyleSheet, Dimensions } from 'react-native';
+import { StyleSheet, Dimensions, Platform } from 'react-native';
 import { Colors } from '@/constants/theme';
 
 const { width } = Dimensions.get('window');
@@ -52,7 +52,7 @@ export const createStyles = (colorScheme: 'light' | 'dark') => {
       marginTop: 2,
     },
     dayContent: {
-      paddingBottom: 20,
+      paddingBottom: 48, // Increased to provide ample spacing below stay options and cards
       paddingHorizontal: 16,
     },
     sectionHeader: {
@@ -239,50 +239,90 @@ export const createStyles = (colorScheme: 'light' | 'dark') => {
     },
     // Stay Options
     stayCard: {
-      width: 160,
-      height: 180,
-      backgroundColor: theme.background,
+      width: 220,
+      backgroundColor: colorScheme === 'dark' ? 'rgba(255,255,255,0.04)' : '#ffffff',
       borderRadius: 20,
       marginRight: 12,
-      overflow: 'hidden',
+      padding: 14,
       borderWidth: 2,
       borderColor: theme.border,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.08,
+      shadowRadius: 8,
+      elevation: 3,
     },
     stayCardSelected: {
-      borderColor: theme.accentTeal,
+      borderColor: theme.accent,
+      shadowOpacity: 0.18,
+      shadowRadius: 12,
+      elevation: 6,
     },
-    stayImage: {
-      width: '100%',
-      height: 100,
+    stayTierBadge: {
+      alignSelf: 'flex-start',
+      paddingHorizontal: 8,
+      paddingVertical: 3,
+      borderRadius: 6,
+      marginBottom: 10,
     },
-    stayInfo: {
-      padding: 10,
+    stayTierText: {
+      color: '#fff',
+      fontSize: 9,
+      fontWeight: '800',
+      letterSpacing: 0.8,
+    },
+    stayNameRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: 4,
+    },
+    stayCheck: {
+      width: 18,
+      height: 18,
+      borderRadius: 9,
+      alignItems: 'center',
+      justifyContent: 'center',
     },
     stayName: {
-      fontSize: 12,
+      flex: 1,
+      fontSize: 13,
       fontWeight: '700',
       color: theme.primary,
-      marginBottom: 2,
+      marginRight: 6,
     },
     stayPrice: {
-      fontSize: 11,
+      fontSize: 12,
       fontWeight: '800',
-      color: theme.accentOrange,
+      marginBottom: 1,
+    },
+    stayPriceNote: {
+      fontSize: 9,
+      color: theme.tertiary,
+      marginBottom: 6,
     },
     ratingContainer: {
       flexDirection: 'row',
       alignItems: 'center',
-      marginTop: 4,
+      marginBottom: 8,
     },
     ratingText: {
       fontSize: 10,
       color: theme.tertiary,
-      marginLeft: 2,
+      marginLeft: 3,
     },
+    stayDescription: {
+      fontSize: 10,
+      color: theme.secondary,
+      lineHeight: 14,
+    },
+    // legacy — kept for compat
+    stayImage: { display: 'none' },
+    stayInfo: { display: 'none' },
     // Cost Bar
     costBar: {
       position: 'absolute',
-      bottom: 30,
+      bottom: 90,
       left: 20,
       right: 20,
       backgroundColor: '#010411', // Deep dark
@@ -308,6 +348,82 @@ export const createStyles = (colorScheme: 'light' | 'dark') => {
       color: '#ffffff',
       fontSize: 24,
       fontWeight: '900',
+      marginTop: 2,
+    },
+    // Standout Cost Breakdown Card at the top of the plan list
+    costBreakdownCard: {
+      backgroundColor: colorScheme === 'dark' ? '#090d16' : '#0f172a',
+      borderRadius: 24,
+      padding: 20,
+      marginHorizontal: 16,
+      marginTop: 16,
+      marginBottom: 16,
+      borderWidth: 1.5,
+      borderColor: colorScheme === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(255, 255, 255, 0.05)',
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 6 },
+      shadowOpacity: 0.15,
+      shadowRadius: 12,
+      elevation: 4,
+    },
+    breakdownHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 16,
+      borderBottomWidth: 1,
+      borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+      paddingBottom: 16,
+    },
+    breakdownTitle: {
+      color: 'rgba(255, 255, 255, 0.6)',
+      fontSize: 12,
+      fontWeight: '700',
+      textTransform: 'uppercase',
+      letterSpacing: 1,
+    },
+    breakdownRange: {
+      color: '#ffffff',
+      fontSize: 18,
+      fontWeight: '900',
+      fontFamily: Platform.OS === 'ios' ? 'Outfit-Bold' : 'Outfit_700Bold',
+    },
+    breakdownGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      justifyContent: 'space-between',
+      gap: 12,
+    },
+    breakdownItem: {
+      width: '47%',
+      backgroundColor: 'rgba(255, 255, 255, 0.05)',
+      borderRadius: 16,
+      padding: 12,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+    },
+    breakdownIconContainer: {
+      width: 32,
+      height: 32,
+      borderRadius: 16,
+      backgroundColor: 'rgba(255, 255, 255, 0.1)',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    breakdownTextContainer: {
+      flex: 1,
+    },
+    breakdownLabel: {
+      color: 'rgba(255, 255, 255, 0.5)',
+      fontSize: 10,
+      fontWeight: '600',
+      textTransform: 'uppercase',
+    },
+    breakdownValue: {
+      color: '#ffffff',
+      fontSize: 13,
+      fontWeight: '800',
       marginTop: 2,
     },
   });

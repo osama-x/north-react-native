@@ -130,7 +130,7 @@ export const createStyles = (colorScheme: 'light' | 'dark') => {
     newsDate: {
       fontFamily: Typography.body.bold,
       fontSize: 11,
-      color: theme.accent,
+      color: '#ffa801', // Gorgeous orange/gold color that pops beautifully on forest green!
       textTransform: 'uppercase',
       marginBottom: 4,
       letterSpacing: 0.5,
@@ -138,14 +138,14 @@ export const createStyles = (colorScheme: 'light' | 'dark') => {
     newsTitle: {
       fontFamily: Typography.header.bold,
       fontSize: 17,
-      color: theme.primary,
+      color: '#ffffff',
       lineHeight: 22,
       marginBottom: 6,
     },
     newsSummary: {
       fontFamily: Typography.body.regular,
       fontSize: 13,
-      color: theme.tertiary,
+      color: 'rgba(255, 255, 255, 0.8)',
       lineHeight: 18,
     },
     newsTagsRow: {
@@ -198,7 +198,7 @@ export const createStyles = (colorScheme: 'light' | 'dark') => {
     roadLocation: {
       fontFamily: Typography.header.bold,
       fontSize: 16,
-      color: theme.primary,
+      color: '#ffffff',
       flex: 1,
     },
     statusBadge: {
@@ -213,7 +213,7 @@ export const createStyles = (colorScheme: 'light' | 'dark') => {
     roadDetails: {
       fontFamily: Typography.body.regular,
       fontSize: 14,
-      color: theme.tertiary,
+      color: 'rgba(255, 255, 255, 0.8)',
       lineHeight: 20,
       marginBottom: 12,
     },
@@ -228,7 +228,7 @@ export const createStyles = (colorScheme: 'light' | 'dark') => {
     lastUpdated: {
       fontFamily: Typography.body.medium,
       fontSize: 11,
-      color: theme.tertiary,
+      color: 'rgba(255, 255, 255, 0.6)',
     },
     // Detail Page
     detailHeader: {

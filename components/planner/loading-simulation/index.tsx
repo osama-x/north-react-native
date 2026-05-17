@@ -80,9 +80,14 @@ export default function LoadingSimulationComponent({ config, onComplete, onError
       })
       .catch(err => {
         console.error('findRoute error:', err);
-        setErrorMsg(err?.message ?? 'Failed to generate route. Please try again.');
+        const errMsg = err?.message || (typeof err === 'string' ? err : '');
+        let friendlyMsg = errMsg || 'Failed to generate route. Please try again.';
+        if (friendlyMsg.toLowerCase().includes('no route found') || friendlyMsg.toLowerCase().includes('noroutefound')) {
+          friendlyMsg = "hmm.. we couldnt find a plan for this...please try again with a different destination";
+        }
+        setErrorMsg(friendlyMsg);
         if (onError) {
-          onError(err?.message ?? 'Failed to generate route. Please try again.');
+          onError(friendlyMsg);
         }
       });
   }, []);
@@ -90,21 +95,57 @@ export default function LoadingSimulationComponent({ config, onComplete, onError
   const spin = spinValue.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] });
 
   if (errorMsg) {
+    const isNoRoute = errorMsg.toLowerCase().includes("couldnt find") || errorMsg.toLowerCase().includes("could'nt find");
+
     return (
       <View style={styles.container}>
-        <View style={styles.errorContainer}>
-          <View style={styles.errorIconContainer}>
-            <IconSymbol name="exclamationmark.triangle.fill" size={32} color="#ffffff" />
+        <View style={[
+          styles.errorContainer,
+          isNoRoute && {
+            backgroundColor: colorScheme === 'dark' ? 'rgba(255, 255, 255, 0.05)' : 'rgba(46, 139, 88, 0.08)',
+            borderColor: colorScheme === 'dark' ? 'rgba(255, 255, 255, 0.15)' : 'rgba(46, 139, 88, 0.25)',
+          }
+        ]}>
+          <View style={[
+            styles.errorIconContainer,
+            isNoRoute && {
+              backgroundColor: colorScheme === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(46, 139, 88, 0.15)',
+            }
+          ]}>
+            <IconSymbol 
+              name={isNoRoute ? "map.fill" : "exclamationmark.triangle.fill"} 
+              size={32} 
+              color={isNoRoute ? theme.accent : "#ffffff"} 
+            />
           </View>
-          <Text style={[styles.errorTitle, { fontFamily: Typography.header.bold }]}>
-            Itinerary Failed
+          <Text style={[
+            styles.errorTitle, 
+            { fontFamily: Typography.header.bold },
+            isNoRoute && { color: theme.primary }
+          ]}>
+            {isNoRoute ? "Hmm..." : "Itinerary Failed"}
           </Text>
-          <Text style={[styles.errorText, { fontFamily: Typography.body.medium }]}>
+          <Text style={[
+            styles.errorText, 
+            { fontFamily: Typography.body.medium },
+            isNoRoute && { color: theme.secondary }
+          ]}>
             {errorMsg}
           </Text>
           {onBack && (
-            <TouchableOpacity style={styles.tryAgainButton} onPress={onBack} activeOpacity={0.9}>
-              <Text style={[styles.tryAgainButtonText, { fontFamily: Typography.body.bold }]}>
+            <TouchableOpacity 
+              style={[
+                styles.tryAgainButton, 
+                isNoRoute && { backgroundColor: theme.accent }
+              ]} 
+              onPress={onBack} 
+              activeOpacity={0.9}
+            >
+              <Text style={[
+                styles.tryAgainButtonText, 
+                { fontFamily: Typography.body.bold },
+                isNoRoute && { color: colorScheme === 'dark' ? '#022c22' : '#ffffff' }
+              ]}>
                 Try Again
               </Text>
             </TouchableOpacity>

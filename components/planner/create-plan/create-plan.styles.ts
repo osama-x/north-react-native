@@ -143,7 +143,7 @@ export const createStyles = (colorScheme: 'light' | 'dark') => {
     counter: {
       flexDirection: 'row',
       alignItems: 'center',
-      backgroundColor: theme.background,
+      backgroundColor: colorScheme === 'dark' ? 'rgba(255, 255, 255, 0.05)' : '#ffffff',
       borderRadius: 12,
       padding: 4,
       borderWidth: 1.5,
@@ -188,7 +188,7 @@ export const createStyles = (colorScheme: 'light' | 'dark') => {
       flex: 1,
     },
     continueButton: {
-      backgroundColor: theme.primary, // white
+      backgroundColor: colorScheme === 'dark' ? '#ffffff' : '#2e8b58', // Green in light mode, white in dark!
       borderRadius: 20,
       height: 64,
       justifyContent: 'center',
@@ -203,7 +203,7 @@ export const createStyles = (colorScheme: 'light' | 'dark') => {
     continueButtonText: {
       fontSize: 18,
       fontWeight: '800',
-      color: theme.background, // dark green for contrast
+      color: colorScheme === 'dark' ? '#022c22' : '#ffffff', // deep green in dark, white in light!
     },
     // Location Suggestions
     suggestionsContainer: {

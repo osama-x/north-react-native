@@ -2,6 +2,7 @@ import { Config } from '@/constants/config';
 import { MyPlan, FeaturedPlan } from './types';
 import { TripItinerary, ItineraryDay, ItineraryNode, BackendFindRouteResponse } from './itinerary/types';
 import { TripConfig } from './create-plan/types';
+import { PETROL_PRICE, FUEL_AVERAGE, buildFoodNode, buildStayOptions, DEFAULT_STAY_ID } from './itinerary/itinerary.service';
 
 const DUMMY_FEATURED: FeaturedPlan[] = [
   { id: 'f1', title: '10 Day Ultimate North', duration: '10 Days', description: 'Comprehensive tour covering Hunza and Skardu.' },
@@ -30,6 +31,10 @@ function mapResponseToItinerary(response: BackendFindRouteResponse, config: Trip
         ? `${Math.floor(act.time_required_min / 60)}h${act.time_required_min % 60 > 0 ? ` ${act.time_required_min % 60}m` : ''}`
         : `${act.time_required_min}m`;
 
+      const calculatedCost = act.type === 'travel'
+        ? Math.round(((act.distance_km || 0) / FUEL_AVERAGE) * PETROL_PRICE)
+        : act.cost;
+
       const node: ItineraryNode = {
         id: `day${backendDay.day}-act${actIndex}`,
         type: act.type === 'travel' ? 'Travel' : act.type === 'stay' ? 'Stop' : 'Activity',
@@ -38,7 +43,7 @@ function mapResponseToItinerary(response: BackendFindRouteResponse, config: Trip
         title: act.title,
         description: act.description || '',
         duration: durationStr,
-        cost: act.cost,
+        cost: calculatedCost,
         distance_km: act.distance_km,
         difficulty: act.difficulty,
         timeRequiredMin: act.time_required_min,
@@ -80,6 +85,13 @@ function mapResponseToItinerary(response: BackendFindRouteResponse, config: Trip
       nodes.push(group);
     }
 
+    // Append a daily food cost node using real traveler counts from config
+    nodes.push(buildFoodNode(
+      backendDay.day,
+      config.travelers.adults,
+      config.travelers.children,
+    ));
+
     const date = new Date(config.departureDate);
     date.setDate(date.getDate() + dayIndex);
 
@@ -89,7 +101,8 @@ function mapResponseToItinerary(response: BackendFindRouteResponse, config: Trip
       date: date.toLocaleDateString('en-PK', { weekday: 'short', day: '2-digit', month: 'short' }),
       departureTimeMin: BASE_START_MIN,
       nodes,
-      stayOptions: [],
+      stayOptions: buildStayOptions(),
+      selectedStayId: DEFAULT_STAY_ID,
       notes: [],
     };
   });

@@ -57,7 +57,7 @@ export const createStyles = (colorScheme: 'light' | 'dark') => {
     myPlanTitle: {
       fontSize: 16,
       fontWeight: '700',
-      color: theme.primary,
+      color: '#ffffff',
     },
     featuredScroll: {
       paddingRight: 20,
@@ -79,18 +79,18 @@ export const createStyles = (colorScheme: 'light' | 'dark') => {
     featuredTitle: {
       fontSize: 18,
       fontWeight: '800',
-      color: theme.primary,
+      color: '#ffffff',
       marginBottom: 8,
     },
     featuredSubtitle: {
       fontSize: 13,
-      color: theme.tertiary,
+      color: 'rgba(255, 255, 255, 0.8)',
       lineHeight: 18,
     },
     generateButton: {
       marginTop: 30,
       marginHorizontal: 20,
-      backgroundColor: theme.primary, // white
+      backgroundColor: colorScheme === 'dark' ? '#ffffff' : '#2e8b58', // Green in light mode, white in dark!
       borderRadius: 20,
       height: 70,
       justifyContent: 'center',
@@ -105,7 +105,7 @@ export const createStyles = (colorScheme: 'light' | 'dark') => {
     generateButtonText: {
       fontSize: 18,
       fontWeight: '800',
-      color: theme.background, // dark green text for contrast
+      color: colorScheme === 'dark' ? '#022c22' : '#ffffff', // deep green in dark, white in light!
       textTransform: 'lowercase',
     },
   });

@@ -5,34 +5,34 @@ const tintColorDark = '#fff';
 
 export const Colors = {
   light: {
-    text: '#ffffff',
-    background: '#2e8b58',
-    tint: '#ffffff',
+    text: '#0f172a', // Dark charcoal/slate text for contrast
+    background: '#f8fafc', // Soft white main screen background!
+    tint: '#ffffff', // Keep header/nav tint as white (since header is green)
     icon: '#ffffff',
     tabIconDefault: 'rgba(255, 255, 255, 0.6)',
     tabIconSelected: '#ffffff',
     // User colors
-    primary: '#ffffff',
-    secondary: 'rgba(255, 255, 255, 0.9)',
-    tertiary: 'rgba(255, 255, 255, 0.75)',
-    accent: '#ffffff', // Set accent to white as well to prevent any green-on-green text
-    accentHover: '#e2e8f0',
+    primary: '#0f172a', // Primary text is dark slate!
+    secondary: '#334155', // Secondary text is slate-700
+    tertiary: '#64748b', // Tertiary text is slate-500
+    accent: '#2e8b58', // Set accent to brand green!
+    accentHover: '#1e603c',
     accentTeal: '#35858E',
     accentOrange: '#E67E22',
-    dark: '#022c22',
-    darkHover: '#064e3b',
-    border: 'rgba(255, 255, 255, 0.2)',
-    lightGray: 'rgba(255, 255, 255, 0.1)',
+    dark: '#0f172a',
+    darkHover: '#1e293b',
+    border: '#cbd5e1', // Clean borders for input boxes, etc.
+    lightGray: '#f1f5f9', // Clean soft gray for input backgrounds, selectors, etc.
     // Liquid Glass Properties
-    glassBg: 'rgba(255, 255, 255, 0.2)',
-    glassBorder: 'rgba(255, 255, 255, 0.4)',
-    glassCardBg: 'rgba(255, 255, 255, 0.15)',
-    glassCardBorder: 'rgba(255, 255, 255, 0.3)',
-    glassGradientStart: '#2e8b58', // Rich green
-    glassGradientEnd: '#047857',   // Deeper green
-    overlayBg: 'rgba(46, 139, 88, 0.95)',
-    inputBg: 'rgba(255, 255, 255, 0.15)',
-    headerBg: 'rgba(46, 139, 88, 0.8)',
+    glassBg: 'rgba(46, 139, 88, 0.1)',
+    glassBorder: 'rgba(46, 139, 88, 0.2)',
+    glassCardBg: '#2e8b58', // Keeping all cards background green!
+    glassCardBorder: 'rgba(46, 139, 88, 0.15)',
+    glassGradientStart: '#fbfcfc', // Gorgeous soft white gradient start
+    glassGradientEnd: '#f1f5f9',   // Soft cool slate off-white gradient end
+    overlayBg: 'rgba(248, 250, 252, 0.98)', // Clean white modal/dropdown overlays
+    inputBg: 'rgba(0, 0, 0, 0.04)', // Soft gray background for inputs
+    headerBg: 'rgba(46, 139, 88, 0.9)', // Forest green header background (brand identity)
   },
   dark: {
     text: '#ffffff',

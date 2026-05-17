@@ -56,6 +56,11 @@ export interface ItineraryNode {
   // For ActivityGroup type
   items?: ItineraryNode[];
   originalItems?: ItineraryNode[]; // Backup for restoration
+  
+  // Custom Food fields
+  foodTier?: 'budget' | 'standard' | 'premium';
+  adults?: number;
+  children?: number;
 }
 
 export interface StayOption {
@@ -72,6 +77,7 @@ export interface DayNote {
   id: string;
   title: string;
   text: string;
+  completed?: boolean;
 }
 
 export interface ItineraryDay {

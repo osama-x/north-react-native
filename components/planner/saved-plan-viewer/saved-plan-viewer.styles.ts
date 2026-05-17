@@ -30,7 +30,7 @@ export const createStyles = (colorScheme: 'light' | 'dark') => {
       marginTop: 10,
       marginHorizontal: 16,
       padding: 20,
-      backgroundColor: colorScheme === 'dark' ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)',
+      backgroundColor: colorScheme === 'dark' ? 'rgba(255,255,255,0.03)' : theme.glassCardBg,
       borderRadius: 24,
       borderWidth: 1.5,
       borderColor: theme.border,
@@ -38,7 +38,7 @@ export const createStyles = (colorScheme: 'light' | 'dark') => {
     label: {
       fontSize: 12,
       fontWeight: '700',
-      color: theme.tertiary,
+      color: colorScheme === 'dark' ? theme.tertiary : 'rgba(255, 255, 255, 0.8)',
       textTransform: 'uppercase',
       letterSpacing: 1,
       marginBottom: 8,
@@ -46,7 +46,7 @@ export const createStyles = (colorScheme: 'light' | 'dark') => {
     input: {
       fontSize: 18,
       fontWeight: '800',
-      color: theme.primary,
+      color: colorScheme === 'dark' ? theme.primary : '#ffffff',
       fontFamily: Platform.OS === 'ios' ? 'Outfit-Bold' : 'Outfit_700Bold',
       padding: 0, // Reset default padding
     },
@@ -65,7 +65,7 @@ export const createStyles = (colorScheme: 'light' | 'dark') => {
     dayContainer: {
       marginTop: 20,
       marginHorizontal: 16,
-      backgroundColor: colorScheme === 'dark' ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)',
+      backgroundColor: colorScheme === 'dark' ? 'rgba(255,255,255,0.03)' : theme.glassCardBg,
       borderRadius: 24,
       overflow: 'hidden',
       borderWidth: 1.5,
@@ -83,11 +83,11 @@ export const createStyles = (colorScheme: 'light' | 'dark') => {
     dayTitle: {
       fontSize: 18,
       fontWeight: '800',
-      color: theme.primary,
+      color: colorScheme === 'dark' ? theme.primary : '#ffffff',
     },
     dayDate: {
       fontSize: 12,
-      color: theme.tertiary,
+      color: colorScheme === 'dark' ? theme.tertiary : 'rgba(255, 255, 255, 0.8)',
       marginTop: 2,
     },
     dayContent: {
@@ -107,14 +107,14 @@ export const createStyles = (colorScheme: 'light' | 'dark') => {
     sectionTitle: {
       fontSize: 14,
       fontWeight: '700',
-      color: theme.tertiary,
+      color: colorScheme === 'dark' ? theme.tertiary : 'rgba(255, 255, 255, 0.8)',
       textTransform: 'uppercase',
       letterSpacing: 1,
     },
     addBtnText: {
       fontSize: 12,
       fontWeight: '700',
-      color: theme.accent,
+      color: colorScheme === 'dark' ? theme.accent : '#fbd561',
     },
 
     // Activity Card (Must Have style)
@@ -138,12 +138,12 @@ export const createStyles = (colorScheme: 'light' | 'dark') => {
       }),
     },
     activityCard: {
-      backgroundColor: colorScheme === 'dark' ? theme.accentOrange + '15' : theme.accentOrange + '08',
-      borderColor: theme.accentOrange + '40',
+      backgroundColor: colorScheme === 'dark' ? theme.accentOrange + '15' : '#ffffff',
+      borderColor: colorScheme === 'dark' ? theme.accentOrange + '40' : '#cbd5e1',
     },
     travelCard: {
-      backgroundColor: colorScheme === 'dark' ? theme.accentTeal + '20' : theme.accentTeal + '10',
-      borderColor: theme.accentTeal + '50',
+      backgroundColor: colorScheme === 'dark' ? theme.accentTeal + '20' : '#ffffff',
+      borderColor: colorScheme === 'dark' ? theme.accentTeal + '50' : '#cbd5e1',
     },
     cardHeader: {
       flexDirection: 'row',
@@ -214,12 +214,12 @@ export const createStyles = (colorScheme: 'light' | 'dark') => {
 
     // Note Card (Premium version)
     noteCard: {
-      backgroundColor: theme.accent + '05',
+      backgroundColor: colorScheme === 'dark' ? 'rgba(255, 255, 255, 0.05)' : '#ffffff',
       borderRadius: 20,
       padding: 16,
       marginBottom: 12,
       borderWidth: 1,
-      borderColor: theme.accent + '20',
+      borderColor: colorScheme === 'dark' ? 'rgba(255, 255, 255, 0.1)' : '#cbd5e1',
       flexDirection: 'row',
       alignItems: 'flex-start',
     },
@@ -426,10 +426,10 @@ export const createStyles = (colorScheme: 'light' | 'dark') => {
     // Floating Cost Bar (Exact match to Itinerary)
     costBar: {
       position: 'absolute',
-      bottom: 30,
+      bottom: 90,
       left: 20,
       right: 20,
-      backgroundColor: '#010411',
+      backgroundColor: colorScheme === 'dark' ? '#010411' : '#0f172a',
       borderRadius: 24,
       padding: 20,
       flexDirection: 'row',
@@ -458,6 +458,125 @@ export const createStyles = (colorScheme: 'light' | 'dark') => {
       color: '#ffffff',
       fontSize: 24,
       fontWeight: '900',
+      marginTop: 2,
+    },
+    // Premium To Do list styles with a gorgeous purple hue
+    todoCard: {
+      backgroundColor: colorScheme === 'dark' ? 'rgba(168, 85, 247, 0.1)' : '#ffffff',
+      borderColor: colorScheme === 'dark' ? 'rgba(168, 85, 247, 0.3)' : 'rgba(139, 92, 246, 0.4)',
+      borderRadius: 20,
+      padding: 16,
+      marginBottom: 12,
+      borderWidth: 1.5,
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    todoCardCompleted: {
+      opacity: 0.65,
+    },
+    todoCheckbox: {
+      width: 28,
+      height: 28,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginRight: 12,
+    },
+    todoContent: {
+      flex: 1,
+    },
+    todoTitle: {
+      fontSize: 15,
+      fontWeight: '800',
+      color: theme.primary,
+    },
+    todoTitleCompleted: {
+      textDecorationLine: 'line-through',
+      color: theme.tertiary,
+    },
+    todoText: {
+      fontSize: 13,
+      color: theme.secondary,
+      marginTop: 4,
+      lineHeight: 18,
+    },
+    todoTextCompleted: {
+      textDecorationLine: 'line-through',
+      color: theme.tertiary,
+    },
+    // Standout Cost Breakdown Card at the top of the plan list
+    costBreakdownCard: {
+      backgroundColor: colorScheme === 'dark' ? '#090d16' : '#0f172a',
+      borderRadius: 24,
+      padding: 20,
+      marginHorizontal: 16,
+      marginTop: 16,
+      marginBottom: 16,
+      borderWidth: 1.5,
+      borderColor: colorScheme === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(255, 255, 255, 0.05)',
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 6 },
+      shadowOpacity: 0.15,
+      shadowRadius: 12,
+      elevation: 4,
+    },
+    breakdownHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 16,
+      borderBottomWidth: 1,
+      borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+      paddingBottom: 16,
+    },
+    breakdownTitle: {
+      color: 'rgba(255, 255, 255, 0.6)',
+      fontSize: 12,
+      fontWeight: '700',
+      textTransform: 'uppercase',
+      letterSpacing: 1,
+    },
+    breakdownRange: {
+      color: '#ffffff',
+      fontSize: 18,
+      fontWeight: '900',
+      fontFamily: Platform.OS === 'ios' ? 'Outfit-Bold' : 'Outfit_700Bold',
+    },
+    breakdownGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      justifyContent: 'space-between',
+      gap: 12,
+    },
+    breakdownItem: {
+      width: '47%',
+      backgroundColor: 'rgba(255, 255, 255, 0.05)',
+      borderRadius: 16,
+      padding: 12,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+    },
+    breakdownIconContainer: {
+      width: 32,
+      height: 32,
+      borderRadius: 16,
+      backgroundColor: 'rgba(255, 255, 255, 0.1)',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    breakdownTextContainer: {
+      flex: 1,
+    },
+    breakdownLabel: {
+      color: 'rgba(255, 255, 255, 0.5)',
+      fontSize: 10,
+      fontWeight: '600',
+      textTransform: 'uppercase',
+    },
+    breakdownValue: {
+      color: '#ffffff',
+      fontSize: 13,
+      fontWeight: '800',
       marginTop: 2,
     },
   });

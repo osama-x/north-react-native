@@ -99,8 +99,8 @@ export default function ProfileComponent({ onSavedPlanPress }: Props) {
                 onPress={() => onSavedPlanPress?.(plan.id)}
               >
                 <View style={styles.planInfo}>
-                  <Text style={[styles.planTitle, { color: theme.primary }]}>{plan.title}</Text>
-                  <Text style={[styles.planDate, { color: theme.tertiary }]}>
+                  <Text style={[styles.planTitle, { color: '#ffffff' }]}>{plan.title}</Text>
+                  <Text style={[styles.planDate, { color: 'rgba(255, 255, 255, 0.8)' }]}>
                     {new Date(plan.startDate).toLocaleDateString()} • PKR {plan.totalCost.toLocaleString()}
                   </Text>
                 </View>
@@ -115,10 +115,10 @@ export default function ProfileComponent({ onSavedPlanPress }: Props) {
                     setMenuPlan(plan);
                   }}
                 >
-                  <IconSymbol name="ellipsis" size={20} color={theme.tertiary} />
+                  <IconSymbol name="ellipsis" size={20} color="rgba(255, 255, 255, 0.8)" />
                 </TouchableOpacity>
 
-                <IconSymbol name="chevron.right" size={20} color={theme.accent} />
+                <IconSymbol name="chevron.right" size={20} color="rgba(255, 255, 255, 0.9)" />
               </TouchableOpacity>
             ))
           ) : (

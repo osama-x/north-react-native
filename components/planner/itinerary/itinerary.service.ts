@@ -6,24 +6,124 @@ import {
   TripItinerary
 } from './types';
 
-const DUMMY_STAYS: StayOption[] = [
-  {
-    id: 's1',
-    name: 'Standard Guest House',
-    level: 'Budget',
-    cost: 3500,
-    rating: 3.5,
-    image: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=400',
+// Fuel Estimation Globals (To be replaced with backend/profile configurations later)
+export const PETROL_PRICE = 410; // PKR per litre
+export const FUEL_AVERAGE = 14;  // km per litre
+
+// ─── Food Cost Configuration ────────────────────────────────────────────────
+// Tier rates are per person per day in PKR.
+// Children are counted at 0.5x adult rate. Infants are free.
+// Adjust rates here when pricing needs to change.
+export const FOOD_TIERS = {
+  budget: {
+    label: 'Budget Eats',
+    description: 'Local dhabas, simple home-style meals',
+    perPersonMin: 1000,
+    perPersonMax: 1200,
+    perPersonPerDay: 1100, // average of min and max
   },
-  {
-    id: 's2',
-    name: 'River View Hotel',
-    level: 'Mid-range',
-    cost: 8500,
+  standard: {
+    label: 'Standard Dining',
+    description: 'Mix of local restaurants & roadside eateries ',
+    perPersonMin: 1650,
+    perPersonMax: 2000,
+    perPersonPerDay: 1825, // average of min and max
+  },
+  premium: {
+    label: 'Premium Dining',
+    description: 'Quality restaurants with varied menu ',
+    perPersonMin: 2500,
+    perPersonMax: 3000,
+    perPersonPerDay: 2750, // average of min and max
+  },
+} as const;
+
+export type FoodTier = keyof typeof FOOD_TIERS;
+export const DEFAULT_FOOD_TIER: FoodTier = 'standard';
+
+/**
+ * Calculate estimated daily food cost for a group.
+ * Infants are always free. Children cost 50% of the adult rate.
+ */
+export const calculateDailyFoodCost = (
+  adults: number,
+  children: number,
+  tier: FoodTier = DEFAULT_FOOD_TIER,
+): number => {
+  const rate = FOOD_TIERS[tier].perPersonPerDay;
+  return Math.round((adults + children * 0.5) * rate);
+};
+
+/** Build a standardised food cost node to append to each day's node list. */
+export const buildFoodNode = (
+  dayId: string | number,
+  adults: number,
+  children: number,
+  tier: FoodTier = DEFAULT_FOOD_TIER,
+): ItineraryNode => ({
+  id: `d${dayId}-food`,
+  type: 'Activity',
+  time: '',
+  title: `Daily Meals — ${FOOD_TIERS[tier].label}`,
+  description: `${FOOD_TIERS[tier].description} (For ${adults} adults${children > 0 ? `, ${children} children` : ''})`,
+  duration: 'All Day',
+  cost: calculateDailyFoodCost(adults, children, tier),
+  distance_km: 0,
+  timeRequiredMin: 0,  // does not shift the timeline
+  difficulty: 'Easy',
+  isFixed: true,
+  isOptional: false,
+  isSelected: true,
+  foodTier: tier,
+  adults,
+  children,
+});
+// ────────────────────────────────────────────────────────────────────────────
+
+// ─── Stay Options Configuration ─────────────────────────────────────────────
+// Per-night rate covers up to 4 persons. Adjust costs here as pricing evolves.
+// In future, stayOptions per day will be fetched from API.
+export const STAY_TIERS = {
+  budget: {
+    id: 'stay-budget',
+    name: 'Budget Stay',
+    level: 'Budget' as const,
+    cost: 7000,
+    rating: 3.6,
+    description: 'Decent amenities and clean washrooms. No flashy items. Best for night stays.',
+  },
+  standard: {
+    id: 'stay-standard',
+    name: 'Standard Hotel',
+    level: 'Mid-range' as const,
+    cost: 13500, // midpoint of 12K–15K
     rating: 4.2,
-    image: 'https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?w=400',
+    description: 'Includes luxuries like heating, AC, and hot water. Good for a full day stay.',
   },
-];
+  luxury: {
+    id: 'stay-luxury',
+    name: 'Luxury Hotel',
+    level: 'Luxury' as const,
+    cost: 25000,
+    rating: 4.8,
+    description: 'Premium brand-managed hotels. Recommended if staying mostly indoors. Iconic experiences.',
+  },
+} as const;
+
+export const DEFAULT_STAY_ID = STAY_TIERS.budget.id;
+
+/** Returns the 3 standardised stay options for any day. */
+export const buildStayOptions = (): StayOption[] =>
+  (Object.values(STAY_TIERS) as Array<typeof STAY_TIERS[keyof typeof STAY_TIERS]>).map(tier => ({
+    id: tier.id,
+    name: tier.name,
+    level: tier.level,
+    cost: tier.cost,
+    rating: tier.rating,
+    description: tier.description,
+  }));
+// ─────────────────────────────────────────────────────────────────────────────
+
 
 export const formatDuration = (minutes: number): string => {
   const hours = Math.floor(minutes / 60);
@@ -46,7 +146,13 @@ export const formatTime = (totalMinutesPassed: number): string => {
   return `${formattedHour}:${formattedMin} ${ampm}`;
 };
 
-export const transformBackendResponse = (response: BackendFindRouteResponse): TripItinerary => {
+export const transformBackendResponse = (
+  response: BackendFindRouteResponse,
+  travelers?: { adults: number; children: number },
+): TripItinerary => {
+  // Default traveler counts for the dummy/fallback data path
+  const adults = travelers?.adults ?? 2;
+  const children = travelers?.children ?? 1;
   const startDate = new Date();
 
   const days: ItineraryDay[] = response.days.map((dayData) => {
@@ -86,6 +192,11 @@ export const transformBackendResponse = (response: BackendFindRouteResponse): Tr
         ? `${act.from_location} to ${act.to_location}`
         : act.title;
 
+      let calculatedCost = act.cost;
+      if (act.type === 'travel') {
+        calculatedCost = Math.round(((act.distance_km || 0) / FUEL_AVERAGE) * PETROL_PRICE);
+      }
+
       const node: ItineraryNode = {
         id: `d${dayData.day}-n${actIndex}`,
         type: act.type === 'travel' ? 'Travel' : 'Activity',
@@ -93,7 +204,7 @@ export const transformBackendResponse = (response: BackendFindRouteResponse): Tr
         title: nodeTitle,
         description: act.description || '',
         duration: durStr,
-        cost: act.cost,
+        cost: calculatedCost,
         distance_km: act.distance_km,
         difficulty: act.difficulty,
         timeRequiredMin: act.time_required_min,
@@ -116,6 +227,9 @@ export const transformBackendResponse = (response: BackendFindRouteResponse): Tr
 
     flushGroup();
 
+    // Inject a daily food cost node at the end of each day
+    nodes.push(buildFoodNode(dayData.day, adults, children));
+
     const currentDate = new Date(startDate);
     currentDate.setDate(startDate.getDate() + dayData.day - 1);
 
@@ -125,8 +239,8 @@ export const transformBackendResponse = (response: BackendFindRouteResponse): Tr
       date: currentDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }),
       departureTimeMin,
       nodes,
-      stayOptions: DUMMY_STAYS, // Maintain mock stays for UI testing
-      selectedStayId: DUMMY_STAYS[0].id,
+      stayOptions: buildStayOptions(),
+      selectedStayId: DEFAULT_STAY_ID,
     };
   });
 
@@ -431,6 +545,48 @@ const DUMMY_BACKEND_RESPONSE: BackendFindRouteResponse = {
   "message": "Round trip generated for 7 days including 1 days of stay."
 }
   ;
+
+export const recalculatePlanFuelCosts = (plan: TripItinerary): { updatedPlan: TripItinerary, totalCost: number } => {
+  let totalCost = 0;
+
+  const updatedDays = plan.days.map(day => {
+    const updatedNodes = day.nodes.map(node => {
+      let cost = node.cost;
+      if (node.type === 'Travel' && node.distance_km) {
+        cost = Math.round((node.distance_km / FUEL_AVERAGE) * PETROL_PRICE);
+      }
+
+      // Sum up selected and unhidden costs
+      if (node.type !== 'ActivityGroup') {
+        if (node.isSelected && !node.isHidden) {
+          totalCost += cost;
+        }
+      } else {
+        // Group items (e.g. optional activities)
+        const updatedGroupItems = node.items?.map(item => {
+          let itemCost = item.cost;
+          if (item.type === 'Travel' && item.distance_km) {
+            itemCost = Math.round((item.distance_km / FUEL_AVERAGE) * PETROL_PRICE);
+          }
+          if (item.isSelected && !item.isHidden) {
+            totalCost += itemCost;
+          }
+          return { ...item, cost: itemCost };
+        });
+        return { ...node, items: updatedGroupItems, cost };
+      }
+
+      return { ...node, cost };
+    });
+
+    return { ...day, nodes: updatedNodes };
+  });
+
+  return {
+    updatedPlan: { ...plan, days: updatedDays },
+    totalCost
+  };
+};
 
 export const ItineraryService = {
   getItinerary: async (config?: any): Promise<TripItinerary> => {
