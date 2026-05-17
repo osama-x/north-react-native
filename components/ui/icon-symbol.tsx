@@ -46,6 +46,7 @@ const MAPPING = {
   'gearshape.fill': 'settings',
   'rectangle.portrait.and.arrow.right': 'logout',
   'trash.fill': 'delete',
+  'exclamationmark.triangle.fill': 'warning',
 } as IconMapping;
 
 /**

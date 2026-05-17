@@ -4,5 +4,6 @@ export const Config = {
   FEATURES: {
     ENABLE_STAYS: false, // Feature flag for Stays functionality
     ENABLE_FEATURED_PLANS: false, // Feature flag for Featured Plans
+    ENABLE_BUS_AND_FLIGHT: false, // Feature flag for Bus and Flight travel options
   },
 };

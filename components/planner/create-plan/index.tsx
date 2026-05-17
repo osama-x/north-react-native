@@ -18,6 +18,7 @@ import { TripConfig } from './types';
 import { Colors } from '@/constants/theme';
 import { LocationService, LocationSuggestion } from '../location.service';
 import { NorthHeader } from '@/components/ui/north-header';
+import { Config } from '@/constants/config';
 
 interface Props {
   initialDestination?: string;
@@ -181,6 +182,13 @@ export default function CreatePlanComponent({ initialDestination, onBack, onCont
     ret.setDate(ret.getDate() + config.duration);
     setConfig(prev => ({ ...prev, returnDate: ret }));
   }, [config.departureDate, config.duration]);
+
+  // Enforce 'Car' as selected transport mode when it's the only option
+  useEffect(() => {
+    if (!Config.FEATURES.ENABLE_BUS_AND_FLIGHT && config.transportMode !== 'Car') {
+      setConfig(prev => ({ ...prev, transportMode: 'Car' }));
+    }
+  }, [config.transportMode]);
 
   // ── Location search state ────────────────────────────────────────────────────
   const [sourceSearch, setSourceSearch] = useState(config.sourceCity);
@@ -429,8 +437,8 @@ export default function CreatePlanComponent({ initialDestination, onBack, onCont
         <Text style={styles.label}>Mode of Transport</Text>
         <View style={styles.transportSection}>
           {renderTransportButton('Car', 'car.fill')}
-          {renderTransportButton('Bus', 'bus.fill')}
-          {renderTransportButton('Flight', 'airplane')}
+          {Config.FEATURES.ENABLE_BUS_AND_FLIGHT && renderTransportButton('Bus', 'bus.fill')}
+          {Config.FEATURES.ENABLE_BUS_AND_FLIGHT && renderTransportButton('Flight', 'airplane')}
         </View>
 
         {/* ── Driving hours (Car only) ──────────────────────────────────────── */}

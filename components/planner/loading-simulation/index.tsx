@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { View, Text, Animated, Easing, Alert } from 'react-native';
+import { View, Text, Animated, Easing, Alert, TouchableOpacity } from 'react-native';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { createStyles } from './loading.styles';
@@ -19,15 +19,17 @@ const STEPS = [
 interface Props {
   config: TripConfig;
   onComplete: (itinerary: TripItinerary) => void;
-  onError: (msg: string) => void;
+  onError?: (msg: string) => void;
+  onBack?: () => void;
 }
 
-export default function LoadingSimulationComponent({ config, onComplete, onError }: Props) {
+export default function LoadingSimulationComponent({ config, onComplete, onError, onBack }: Props) {
   const colorScheme = useColorScheme();
   const styles = useMemo(() => createStyles(colorScheme ?? 'light'), [colorScheme]);
   const theme = Colors[colorScheme ?? 'light'];
 
   const [currentStep, setCurrentStep] = useState(0);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const spinValue = useRef(new Animated.Value(0)).current;
   const itineraryRef = useRef<TripItinerary | null>(null);
   const apiDoneRef = useRef(false);
@@ -78,11 +80,39 @@ export default function LoadingSimulationComponent({ config, onComplete, onError
       })
       .catch(err => {
         console.error('findRoute error:', err);
-        onError(err?.message ?? 'Failed to generate route. Please try again.');
+        setErrorMsg(err?.message ?? 'Failed to generate route. Please try again.');
+        if (onError) {
+          onError(err?.message ?? 'Failed to generate route. Please try again.');
+        }
       });
   }, []);
 
   const spin = spinValue.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] });
+
+  if (errorMsg) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.errorContainer}>
+          <View style={styles.errorIconContainer}>
+            <IconSymbol name="exclamationmark.triangle.fill" size={32} color="#ffffff" />
+          </View>
+          <Text style={[styles.errorTitle, { fontFamily: Typography.header.bold }]}>
+            Itinerary Failed
+          </Text>
+          <Text style={[styles.errorText, { fontFamily: Typography.body.medium }]}>
+            {errorMsg}
+          </Text>
+          {onBack && (
+            <TouchableOpacity style={styles.tryAgainButton} onPress={onBack} activeOpacity={0.9}>
+              <Text style={[styles.tryAgainButtonText, { fontFamily: Typography.body.bold }]}>
+                Try Again
+              </Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>

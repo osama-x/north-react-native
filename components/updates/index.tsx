@@ -99,10 +99,11 @@ export default function UpdatesComponent() {
     }
 
     try {
+      const bypassCache = isRefresh;
       const [newsData, roadsData, tagsData] = await Promise.all([
-        UpdatesService.getNews(pageNum, PAGE_SIZE),
-        pageNum === 1 ? UpdatesService.getRoads() : Promise.resolve([]),
-        pageNum === 1 ? UpdatesService.getTopTags() : Promise.resolve([]),
+        UpdatesService.getNews(pageNum, PAGE_SIZE, bypassCache),
+        pageNum === 1 ? UpdatesService.getRoads(bypassCache) : Promise.resolve([]),
+        pageNum === 1 ? UpdatesService.getTopTags(10, bypassCache) : Promise.resolve([]),
       ]);
 
       if (newsData.length < PAGE_SIZE) {
@@ -139,12 +140,9 @@ export default function UpdatesComponent() {
   const handleViewChange = (view: UpdateView) => {
     setActiveView(view);
     setSelectedTag('All');
-    // Reset pagination when switching views
-    if (view === 'News') {
-      setPage(1);
-      setHasMore(true);
-      fetchData(1);
-    }
+    setPage(1);
+    setHasMore(true);
+    fetchData(1);
   };
 
   const handleShare = async (item: NewsItem) => {
@@ -375,6 +373,7 @@ export default function UpdatesComponent() {
           data={activeView === 'News' ? filteredNews : filteredRoads}
           renderItem={activeView === 'News' ? renderNewsItem : renderRoadItem}
           keyExtractor={(item) => item.id}
+          extraData={activeView}
           contentContainerStyle={[styles.listContent, { flexGrow: 1 }]}
           showsVerticalScrollIndicator={false}
           refreshControl={

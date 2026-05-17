@@ -50,6 +50,16 @@ export const createStyles = (colorScheme: 'light' | 'dark') => {
       fontFamily: Platform.OS === 'ios' ? 'Outfit-Bold' : 'Outfit_700Bold',
       padding: 0, // Reset default padding
     },
+    dateInputBox: {
+      backgroundColor: colorScheme === 'dark' ? 'rgba(255, 255, 255, 0.05)' : theme.lightGray,
+      borderRadius: 16,
+      padding: 16,
+      borderWidth: 1,
+      borderColor: theme.border,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+    },
 
     // Day Container (Exact match to Itinerary)
     dayContainer: {

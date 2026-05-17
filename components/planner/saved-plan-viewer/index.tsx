@@ -13,11 +13,13 @@ import {
   UIManager,
   LayoutAnimation,
   TouchableWithoutFeedback,
+  Animated,
+  Easing,
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Colors } from '@/constants/theme';
+import { Colors, Typography } from '@/constants/theme';
 import { NorthHeader } from '@/components/ui/north-header';
 import { dbService, SavedPlanRecord } from '@/database';
 import { TripItinerary, ItineraryDay, ItineraryNode, DayNote } from '../itinerary/types';
@@ -29,6 +31,171 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
+function SlidingText({ text, style }: { text: string; style?: any }) {
+  const [textWidth, setTextWidth] = useState(0);
+  const [containerActualWidth, setContainerActualWidth] = useState(200);
+  const animatedValue = React.useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    animatedValue.setValue(0);
+    
+    if (textWidth > containerActualWidth) {
+      const scrollRange = textWidth - containerActualWidth;
+      const duration = scrollRange * 40; // speed proportional to distance
+      
+      const animation = Animated.loop(
+        Animated.sequence([
+          Animated.delay(2000), // Hold at the beginning
+          Animated.timing(animatedValue, {
+            toValue: -scrollRange - 20,
+            duration: Math.max(3000, duration),
+            easing: Easing.linear,
+            useNativeDriver: true,
+          }),
+          Animated.delay(1500), // Hold at the end
+          Animated.timing(animatedValue, {
+            toValue: 0,
+            duration: 1200, // Slide back smoothly
+            easing: Easing.out(Easing.ease),
+            useNativeDriver: true,
+          }),
+        ])
+      );
+      animation.start();
+      return () => animation.stop();
+    }
+  }, [text, textWidth, containerActualWidth]);
+
+  return (
+    <View 
+      style={{ overflow: 'hidden', width: '100%', alignItems: 'center', justifyContent: 'center' }}
+      onLayout={(e) => setContainerActualWidth(e.nativeEvent.layout.width)}
+    >
+      <View style={{ flexDirection: 'row', width: '100%', justifyContent: 'center' }}>
+        <Animated.Text
+          numberOfLines={1}
+          onLayout={(e) => setTextWidth(e.nativeEvent.layout.width)}
+          style={[
+            style,
+            {
+              transform: [{ translateX: animatedValue }],
+              whiteSpace: 'nowrap', // For web support
+            }
+          ]}
+        >
+          {text}
+        </Animated.Text>
+      </View>
+    </View>
+  );
+}
+
+// ── Inline calendar for web (no native picker available) ──────────────────────
+function WebCalendar({
+  value,
+  onChange,
+  onClose,
+  colorScheme,
+}: {
+  value: Date;
+  onChange: (d: Date) => void;
+  onClose: () => void;
+  colorScheme: 'light' | 'dark';
+}) {
+  const [viewYear, setViewYear] = useState(value.getFullYear());
+  const [viewMonth, setViewMonth] = useState(value.getMonth());
+
+  const bg = colorScheme === 'dark' ? '#052e16' : '#ffffff';
+  const fg = colorScheme === 'dark' ? '#ffffff' : '#111827';
+  const accent = '#2e8b58';
+  const subtle = colorScheme === 'dark' ? '#166534' : '#e5e7eb';
+  const today = new Date();
+
+  const firstDay = new Date(viewYear, viewMonth, 1).getDay();
+  const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
+  const monthName = new Date(viewYear, viewMonth).toLocaleString('default', { month: 'long', year: 'numeric' });
+
+  const cells: (number | null)[] = [];
+  for (let i = 0; i < firstDay; i++) cells.push(null);
+  for (let d = 1; d <= daysInMonth; d++) cells.push(d);
+
+  const prevMonth = () => {
+    if (viewMonth === 0) { setViewMonth(11); setViewYear(y => y - 1); }
+    else setViewMonth(m => m - 1);
+  };
+  const nextMonth = () => {
+    if (viewMonth === 11) { setViewMonth(0); setViewYear(y => y + 1); }
+    else setViewMonth(m => m + 1);
+  };
+
+  const isPast = (d: number) => {
+    const dt = new Date(viewYear, viewMonth, d);
+    dt.setHours(0, 0, 0, 0);
+    const t = new Date(); t.setHours(0, 0, 0, 0);
+    return dt < t;
+  };
+  const isSelected = (d: number) =>
+    value.getDate() === d && value.getMonth() === viewMonth && value.getFullYear() === viewYear;
+
+  return (
+    <View style={{ backgroundColor: bg, borderRadius: 20, padding: 16, width: 320 }}>
+      {/* Header */}
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+        <TouchableOpacity onPress={prevMonth} style={{ padding: 8 }}>
+          <Text style={{ color: accent, fontSize: 20, fontWeight: '700' }}>‹</Text>
+        </TouchableOpacity>
+        <Text style={{ color: fg, fontWeight: '700', fontSize: 16 }}>{monthName}</Text>
+        <TouchableOpacity onPress={nextMonth} style={{ padding: 8 }}>
+          <Text style={{ color: accent, fontSize: 20, fontWeight: '700' }}>›</Text>
+        </TouchableOpacity>
+      </View>
+      {/* Day labels */}
+      <View style={{ flexDirection: 'row', marginBottom: 8 }}>
+        {['Su','Mo','Tu','We','Th','Fr','Sa'].map(d => (
+          <View key={d} style={{ flex: 1, alignItems: 'center' }}>
+            <Text style={{ color: accent, fontSize: 12, fontWeight: '700' }}>{d}</Text>
+          </View>
+        ))}
+      </View>
+      {/* Days grid */}
+      <View style={{ flexWrap: 'wrap', flexDirection: 'row' }}>
+        {cells.map((day, i) => (
+          <View key={i} style={{ width: `${100/7}%`, alignItems: 'center', marginBottom: 4 }}>
+            {day !== null ? (
+              <TouchableOpacity
+                disabled={isPast(day)}
+                onPress={() => {
+                  onChange(new Date(viewYear, viewMonth, day));
+                  onClose();
+                }}
+                style={{
+                  width: 36, height: 36, borderRadius: 18,
+                  backgroundColor: isSelected(day) ? accent : 'transparent',
+                  justifyContent: 'center', alignItems: 'center',
+                }}
+              >
+                <Text style={{
+                  color: isPast(day) ? (colorScheme === 'dark' ? '#4b5563' : '#d1d5db')
+                    : isSelected(day) ? '#ffffff' : fg,
+                  fontWeight: isSelected(day) ? '700' : '400',
+                  fontSize: 14,
+                }}>{day}</Text>
+              </TouchableOpacity>
+            ) : <View style={{ width: 36, height: 36 }} />}
+          </View>
+        ))}
+      </View>
+      {/* Close */}
+      <TouchableOpacity
+        onPress={onClose}
+        style={{ marginTop: 12, alignItems: 'center', paddingVertical: 12, borderTopWidth: 1, borderTopColor: subtle }}
+      >
+        <Text style={{ color: accent, fontWeight: '700', fontSize: 15 }}>Cancel</Text>
+      </TouchableOpacity>
+    </View>
+  );
+}
+
 interface Props {
   planId: string;
   onBack: () => void;
@@ -38,7 +205,61 @@ export default function SavedPlanViewerComponent({ planId, onBack }: Props) {
   const colorScheme = useColorScheme();
   const styles = useMemo(() => createStyles(colorScheme ?? 'light'), [colorScheme]);
   const theme = Colors[colorScheme ?? 'light'];
-  
+  const formatDateString = (dateStr: string) => {
+    if (!dateStr) return 'Select Date';
+    try {
+      // Split YYYY-MM-DD to avoid timezone shifts
+      const parts = dateStr.split('-');
+      if (parts.length === 3) {
+        const d = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+        if (!isNaN(d.getTime())) {
+          return d.toLocaleDateString('en-PK', { day: '2-digit', month: 'short', year: 'numeric' });
+        }
+      }
+      const d = new Date(dateStr);
+      if (!isNaN(d.getTime())) {
+        return d.toLocaleDateString('en-PK', { day: '2-digit', month: 'short', year: 'numeric' });
+      }
+      return dateStr;
+    } catch {
+      return dateStr;
+    }
+  };
+
+  const getDaysToGo = (dateStr: string) => {
+    if (!dateStr) return '';
+    try {
+      const parts = dateStr.split('-');
+      let tripDate: Date;
+      if (parts.length === 3) {
+        tripDate = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+      } else {
+        tripDate = new Date(dateStr);
+      }
+      tripDate.setHours(0, 0, 0, 0);
+
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      const diffTime = tripDate.getTime() - today.getTime();
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+      if (diffDays === 0) {
+        return 'Today';
+      } else if (diffDays === 1) {
+        return 'Tomorrow';
+      } else if (diffDays > 1) {
+        return `${diffDays} Days to go`;
+      } else if (diffDays === -1) {
+        return 'Yesterday';
+      } else {
+        return `${Math.abs(diffDays)} Days ago`;
+      }
+    } catch {
+      return '';
+    }
+  };
+
   const [record, setRecord] = useState<SavedPlanRecord | null>(null);
   const [loading, setLoading] = useState(true);
   
@@ -93,7 +314,7 @@ export default function SavedPlanViewerComponent({ planId, onBack }: Props) {
     setLoading(false);
   };
 
-  const saveChanges = async (updatedPlan: TripItinerary, updatedTotalCost?: number) => {
+  const saveChanges = async (updatedPlan: TripItinerary, updatedTotalCost?: number, updatedStartDate?: string) => {
     if (!record) return;
     try {
       await dbService.updatePlan(updatedPlan, updatedTotalCost ?? record.totalCost);
@@ -103,7 +324,8 @@ export default function SavedPlanViewerComponent({ planId, onBack }: Props) {
         return { 
           ...prev, 
           data: updatedPlan, 
-          totalCost: updatedTotalCost ?? prev.totalCost 
+          totalCost: updatedTotalCost ?? prev.totalCost,
+          startDate: updatedStartDate ?? prev.startDate
         };
       });
 
@@ -282,13 +504,11 @@ export default function SavedPlanViewerComponent({ planId, onBack }: Props) {
     if (selectedDate && record) {
       // Format to YYYY-MM-DD
       const dateString = selectedDate.toISOString().split('T')[0];
-      const updated = { ...record, startDate: dateString };
-      
-      const updatedData = { ...updated.data };
+      const updatedData = { ...record.data };
       if (updatedData.days.length > 0) {
         updatedData.days[0].date = dateString;
       }
-      setRecord({ ...updated, data: updatedData });
+      saveChanges(updatedData, record.totalCost, dateString);
     }
   };
 
@@ -549,7 +769,17 @@ export default function SavedPlanViewerComponent({ planId, onBack }: Props) {
   return (
     <View style={styles.container}>
       <NorthHeader 
-        title="Saved Plan"
+        title={
+          <SlidingText 
+            text={record.title || "Saved Plan"} 
+            style={{
+              fontFamily: Typography.header.bold,
+              fontSize: 18,
+              color: '#ffffff',
+              textAlign: 'center',
+            }} 
+          />
+        }
         showLogo={false}
         leftElement={
           <TouchableOpacity style={styles.headerBtn} onPress={onBack}>
@@ -593,57 +823,92 @@ export default function SavedPlanViewerComponent({ planId, onBack }: Props) {
             style={[styles.input, { fontSize: 24, marginBottom: 12 }]}
             value={record.title}
             onChangeText={(t) => setRecord({ ...record, title: t })}
+            onBlur={() => {
+              if (record) {
+                const updatedPlan = { ...record.data, title: record.title };
+                saveChanges(updatedPlan);
+              }
+            }}
+            onSubmitEditing={() => {
+              if (record) {
+                const updatedPlan = { ...record.data, title: record.title };
+                saveChanges(updatedPlan);
+              }
+            }}
             placeholder="Trip Name"
             placeholderTextColor={theme.tertiary}
           />
           <Text style={styles.label}>Trip Start Date</Text>
-          {Platform.OS === 'web' ? (
-            createElement('input', {
-              type: 'date',
-              value: record.startDate,
-              onChange: (e: any) => {
-                const dateString = e.target.value;
-                const updated = { ...record, startDate: dateString };
-                const updatedData = { ...updated.data };
-                if (updatedData.days.length > 0) {
-                  updatedData.days[0].date = dateString;
-                }
-                setRecord({ ...updated, data: updatedData });
-              },
-              style: {
-                padding: '8px 0',
-                fontSize: '16px',
-                backgroundColor: 'transparent',
-                color: theme.primary,
-                border: 'none',
-                borderBottom: `1px solid ${theme.border}`,
-                fontFamily: 'inherit',
-                outline: 'none',
-                width: '100%',
-              }
-            })
-          ) : (
-            <>
-              <TouchableOpacity 
-                onPress={() => setShowDatePicker(true)}
-                style={{ paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: theme.border }}
-              >
-                <Text style={[styles.input, { color: record.startDate ? theme.primary : theme.tertiary }]}>
-                  {record.startDate || "Select Date"}
+          <TouchableOpacity 
+            style={[styles.dateInputBox, { justifyContent: 'space-between' }]} 
+            onPress={() => setShowDatePicker(true)}
+          >
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <IconSymbol name="calendar" size={16} color={theme.accent} />
+              <Text style={{ color: theme.primary, fontSize: 15, fontWeight: '600' }}>
+                {formatDateString(record.startDate)}
+              </Text>
+            </View>
+            {getDaysToGo(record.startDate) ? (
+              <View style={{ 
+                backgroundColor: theme.accent + '20', 
+                paddingHorizontal: 10, 
+                paddingVertical: 4, 
+                borderRadius: 8 
+              }}>
+                <Text style={{ color: theme.accent, fontSize: 12, fontWeight: '700' }}>
+                  {getDaysToGo(record.startDate)}
                 </Text>
-              </TouchableOpacity>
-              
-              {showDatePicker && (
-                <DateTimePicker
-                  value={new Date(record.startDate || Date.now())}
-                  mode="date"
-                  display="default"
-                  onChange={handleDateChange}
-                  minimumDate={new Date()}
+              </View>
+            ) : null}
+          </TouchableOpacity>
+
+          <Modal 
+            visible={showDatePicker} 
+            transparent 
+            animationType="fade" 
+            onRequestClose={() => setShowDatePicker(false)}
+          >
+            <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center' }}>
+              {Platform.OS === 'web' ? (
+                <WebCalendar
+                  value={record.startDate ? new Date(record.startDate) : new Date()}
+                  colorScheme={colorScheme ?? 'light'}
+                  onChange={(d) => {
+                    const dateString = d.toISOString().split('T')[0];
+                    const updatedData = { ...record.data };
+                    if (updatedData.days.length > 0) {
+                      updatedData.days[0].date = dateString;
+                    }
+                    saveChanges(updatedData, record.totalCost, dateString);
+                  }}
+                  onClose={() => setShowDatePicker(false)}
                 />
+              ) : (
+                <View style={{ backgroundColor: colorScheme === 'dark' ? '#052e16' : '#ffffff', borderRadius: 20, overflow: 'hidden', padding: 8 }}>
+                  <DateTimePicker
+                    value={record.startDate ? new Date(record.startDate) : new Date()}
+                    mode="date"
+                    display="inline"
+                    minimumDate={new Date()}
+                    accentColor="#2e8b58"
+                    themeVariant={colorScheme ?? 'light'}
+                    onChange={(_e, date) => {
+                      if (date) {
+                        const dateString = date.toISOString().split('T')[0];
+                        const updatedData = { ...record.data };
+                        if (updatedData.days.length > 0) {
+                          updatedData.days[0].date = dateString;
+                        }
+                        saveChanges(updatedData, record.totalCost, dateString);
+                      }
+                      setShowDatePicker(false);
+                    }}
+                  />
+                </View>
               )}
-            </>
-          )}
+            </View>
+          </Modal>
           
           {/* Trip Notes Section */}
           <View style={{ marginTop: 24, paddingTop: 20, borderTopWidth: 1, borderTopColor: theme.border }}>

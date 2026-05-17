@@ -127,6 +127,9 @@ export const PlannerService = {
     }
 
     const data: BackendFindRouteResponse = await response.json();
+    if (data.status === 'failed') {
+      throw new Error(data.message || 'Failed to generate itinerary. Please try again.');
+    }
     return mapResponseToItinerary(data, config);
   },
 };

@@ -6,7 +6,7 @@ import { StatusBar } from 'expo-status-bar';
 import { Typography } from '@/constants/theme';
 
 interface NorthHeaderProps {
-  title?: string;
+  title?: string | React.ReactNode;
   leftElement?: React.ReactNode;
   rightElement?: React.ReactNode;
   showLogo?: boolean;
@@ -36,7 +36,13 @@ export function NorthHeader({
         </View>
         
         <View style={styles.centerContainer}>
-          {!showLogo && title && <Text style={styles.titleText}>{title}</Text>}
+          {!showLogo && title && (
+            typeof title === 'string' ? (
+              <Text style={styles.titleText} numberOfLines={1}>{title}</Text>
+            ) : (
+              title
+            )
+          )}
         </View>
 
         <View style={styles.rightContainer}>
@@ -66,13 +72,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   leftGroup: {
-    flex: 3,
+    flex: 2,
     flexDirection: 'row',
     alignItems: 'center',
     height: '100%',
   },
   centerContainer: {
-    flex: 1,
+    flex: 6,
     height: '100%',
     alignItems: 'center',
     justifyContent: 'center',

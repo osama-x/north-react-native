@@ -85,11 +85,7 @@ export default function PlanScreen() {
           setGeneratedItinerary(itinerary);
           pushView('final');
         }}
-        onError={(msg) => {
-          Alert.alert('Could Not Generate Route', msg, [
-            { text: 'Go Back', onPress: popView },
-          ]);
-        }}
+        onBack={popView}
       />
     );
   }

@@ -75,10 +75,24 @@ const formatTimeAgo = (dateString: string): string => {
   return date.toLocaleDateString();
 };
 
+let newsCache: { timestamp: number; data: NewsItem[] } | null = null;
+let roadsCache: { timestamp: number; data: RoadStatus[] } | null = null;
+let tagsCache: { timestamp: number; data: string[] } | null = null;
+
+const CACHE_DURATION_MS = 60 * 1000; // 1 minute
+
 export const UpdatesService = {
-  getNews: async (page = 1, pageSize = 10): Promise<NewsItem[]> => {
+  getNews: async (page = 1, pageSize = 10, bypassCache = false): Promise<NewsItem[]> => {
+    if (page === 1 && !bypassCache && newsCache && (Date.now() - newsCache.timestamp < CACHE_DURATION_MS)) {
+      return newsCache.data;
+    }
+
     if (!Config.USE_API) {
-      return new Promise((resolve) => setTimeout(() => resolve(DUMMY_NEWS), 800));
+      const dummyRes = await new Promise<NewsItem[]>((resolve) => setTimeout(() => resolve(DUMMY_NEWS), 800));
+      if (page === 1) {
+        newsCache = { timestamp: Date.now(), data: dummyRes };
+      }
+      return dummyRes;
     }
 
     try {
@@ -92,7 +106,7 @@ export const UpdatesService = {
       const data = await response.json();
 
       // Map API items to our NewsItem interface
-      return (data.items || []).map((item: any) => ({
+      const mapped = (data.items || []).map((item: any) => ({
         id: item.id?.toString() || Math.random().toString(),
         title: item.title,
         content: item.content,
@@ -102,20 +116,36 @@ export const UpdatesService = {
         thumbnail: item.thumbnail_url || item.image_url,
         image: item.image_url || item.thumbnail_url,
       }));
+
+      if (page === 1) {
+        newsCache = { timestamp: Date.now(), data: mapped };
+      }
+      return mapped;
     } catch (error) {
       console.error('Error fetching news:', error);
       return DUMMY_NEWS;
     }
   },
 
-  getRoads: async (): Promise<RoadStatus[]> => {
-    // Road API can be added similarly when available
-    return new Promise((resolve) => setTimeout(() => resolve(DUMMY_ROADS), 800));
+  getRoads: async (bypassCache = false): Promise<RoadStatus[]> => {
+    if (!bypassCache && roadsCache && (Date.now() - roadsCache.timestamp < CACHE_DURATION_MS)) {
+      return roadsCache.data;
+    }
+
+    const res = await new Promise<RoadStatus[]>((resolve) => setTimeout(() => resolve(DUMMY_ROADS), 800));
+    roadsCache = { timestamp: Date.now(), data: res };
+    return res;
   },
 
-  getTopTags: async (limit = 10): Promise<string[]> => {
+  getTopTags: async (limit = 10, bypassCache = false): Promise<string[]> => {
+    if (!bypassCache && tagsCache && (Date.now() - tagsCache.timestamp < CACHE_DURATION_MS)) {
+      return tagsCache.data;
+    }
+
     if (!Config.USE_API) {
-      return ['All', 'Weather', 'Skardu', 'Roads', 'Tourism', 'Alert'];
+      const dummyRes = ['All', 'Weather', 'Skardu', 'Roads', 'Tourism', 'Alert'];
+      tagsCache = { timestamp: Date.now(), data: dummyRes };
+      return dummyRes;
     }
 
     try {
@@ -127,7 +157,9 @@ export const UpdatesService = {
         },
       });
       const data = await response.json();
-      return ['All', ...data.map((item: any) => item.tag)];
+      const mapped = ['All', ...data.map((item: any) => item.tag)];
+      tagsCache = { timestamp: Date.now(), data: mapped };
+      return mapped;
     } catch (error) {
       console.error('Error fetching top tags:', error);
       return ['All', 'Weather', 'Skardu', 'Roads'];
