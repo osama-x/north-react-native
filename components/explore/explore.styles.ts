@@ -42,7 +42,7 @@ export const createStyles = (colorScheme: 'light' | 'dark') => {
     moreText: {
       fontSize: 14,
       fontWeight: '600',
-      color: theme.accent,
+      color: theme.accentTeal,
     },
     planScroll: {
       paddingLeft: 20,
@@ -67,7 +67,7 @@ export const createStyles = (colorScheme: 'light' | 'dark') => {
     planDuration: {
       fontSize: 12,
       fontWeight: '700',
-      color: theme.accent,
+      color: theme.accentOrange,
       textTransform: 'uppercase',
       letterSpacing: 1,
       marginBottom: 4,

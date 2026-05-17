@@ -122,7 +122,7 @@ export const createStyles = (colorScheme: 'light' | 'dark') => {
       marginBottom: 12,
     },
     timeTag: {
-      backgroundColor: theme.accent + '15',
+      backgroundColor: theme.accentTeal + '15',
       paddingHorizontal: 10,
       paddingVertical: 4,
       borderRadius: 8,
@@ -130,7 +130,7 @@ export const createStyles = (colorScheme: 'light' | 'dark') => {
     timeText: {
       fontSize: 12,
       fontWeight: '800',
-      color: theme.accent,
+      color: theme.accentTeal,
     },
     durationText: {
       fontSize: 12,
@@ -150,10 +150,10 @@ export const createStyles = (colorScheme: 'light' | 'dark') => {
     },
     arrivalNote: {
       fontSize: 12,
-      color: theme.accent,
+      color: theme.accentOrange,
       fontFamily: 'Inter_600SemiBold',
       marginTop: 8,
-      backgroundColor: theme.accent + '10',
+      backgroundColor: theme.accentOrange + '10',
       paddingHorizontal: 8,
       paddingVertical: 4,
       borderRadius: 6,
@@ -171,8 +171,8 @@ export const createStyles = (colorScheme: 'light' | 'dark') => {
       alignItems: 'center',
     },
     optionalCardSelected: {
-      borderColor: theme.accent,
-      backgroundColor: theme.accent + '08',
+      borderColor: theme.accentTeal,
+      backgroundColor: theme.accentTeal + '08',
     },
     optionalInfo: {
       flex: 1,
@@ -249,7 +249,7 @@ export const createStyles = (colorScheme: 'light' | 'dark') => {
       borderColor: theme.border,
     },
     stayCardSelected: {
-      borderColor: theme.accent,
+      borderColor: theme.accentTeal,
     },
     stayImage: {
       width: '100%',
@@ -267,7 +267,7 @@ export const createStyles = (colorScheme: 'light' | 'dark') => {
     stayPrice: {
       fontSize: 11,
       fontWeight: '800',
-      color: theme.accent,
+      color: theme.accentOrange,
     },
     ratingContainer: {
       flexDirection: 'row',

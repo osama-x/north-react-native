@@ -17,6 +17,8 @@ export const Colors = {
     tertiary: 'rgba(255, 255, 255, 0.75)',
     accent: '#ffffff', // Set accent to white as well to prevent any green-on-green text
     accentHover: '#e2e8f0',
+    accentTeal: '#35858E',
+    accentOrange: '#E67E22',
     dark: '#022c22',
     darkHover: '#064e3b',
     border: 'rgba(255, 255, 255, 0.2)',
@@ -45,6 +47,8 @@ export const Colors = {
     tertiary: 'rgba(255, 255, 255, 0.7)',
     accent: '#ffffff',
     accentHover: '#e2e8f0',
+    accentTeal: '#35858E',
+    accentOrange: '#E67E22',
     dark: '#022c22',
     darkHover: '#064e3b',
     border: 'rgba(255, 255, 255, 0.15)',

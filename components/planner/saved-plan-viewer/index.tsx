@@ -687,8 +687,8 @@ export default function SavedPlanViewerComponent({ planId, onBack }: Props) {
           styles.mustHaveCard, 
           isActivity ? styles.activityCard : styles.travelCard
         ]}
-        onPress={() => node.isCustom && openActivityModal(dayId, node)}
-        activeOpacity={node.isCustom ? 0.7 : 1}
+        onPress={() => isActivity && openActivityModal(dayId, node)}
+        activeOpacity={isActivity ? 0.7 : 1}
       >
         <View style={styles.cardHeader}>
           <View style={styles.timeTag}>
@@ -701,7 +701,7 @@ export default function SavedPlanViewerComponent({ planId, onBack }: Props) {
           <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center' }}>
             {node.isCustom && (
               <View style={styles.customBadge}>
-                <Text style={styles.customBadgeText}>Custom</Text>
+                <Text style={styles.customBadgeText}>CUSTOM</Text>
               </View>
             )}
             <Text style={styles.cardTitle} numberOfLines={2}>{node.title}</Text>
@@ -796,7 +796,7 @@ export default function SavedPlanViewerComponent({ planId, onBack }: Props) {
           top: Platform.OS === 'ios' ? 110 : 80,
           left: 20,
           right: 20,
-          backgroundColor: theme.accent,
+          backgroundColor: theme.accentTeal,
           paddingVertical: 14,
           paddingHorizontal: 20,
           borderRadius: 20,
@@ -851,12 +851,12 @@ export default function SavedPlanViewerComponent({ planId, onBack }: Props) {
             </View>
             {getDaysToGo(record.startDate) ? (
               <View style={{ 
-                backgroundColor: theme.accent + '20', 
+                backgroundColor: theme.accentOrange + '20', 
                 paddingHorizontal: 10, 
                 paddingVertical: 4, 
                 borderRadius: 8 
               }}>
-                <Text style={{ color: theme.accent, fontSize: 12, fontWeight: '700' }}>
+                <Text style={{ color: theme.accentOrange, fontSize: 12, fontWeight: '700' }}>
                   {getDaysToGo(record.startDate)}
                 </Text>
               </View>
@@ -1140,17 +1140,25 @@ export default function SavedPlanViewerComponent({ planId, onBack }: Props) {
           <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
             <TouchableOpacity activeOpacity={1} style={styles.modalContent}>
               <View style={styles.modalIndicator} />
-              <Text style={styles.modalTitle}>Add Custom Activity</Text>
+              <Text style={styles.modalTitle}>
+                {editingActivityId ? 'Edit Activity' : 'Add Custom Activity'}
+              </Text>
+              
+              <Text style={styles.modalFieldLabel}>Activity Title</Text>
               <TextInput 
                 style={styles.modalInput}
                 placeholder="Activity Name (e.g. Sunrise Photo)" placeholderTextColor={theme.tertiary}
                 value={actName} onChangeText={setActName}
               />
+              
+              <Text style={styles.modalFieldLabel}>Time Required</Text>
               <TextInput 
                 style={styles.modalInput}
                 placeholder="Duration (e.g. 1.5 hrs)" placeholderTextColor={theme.tertiary}
                 value={actDuration} onChangeText={setActDuration}
               />
+              
+              <Text style={styles.modalFieldLabel}>Total Cost Per Person (PKR)</Text>
               <TextInput 
                 style={styles.modalInput}
                 placeholder="Estimated Cost (PKR)" placeholderTextColor={theme.tertiary}

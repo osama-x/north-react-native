@@ -71,8 +71,8 @@ export const createStyles = (colorScheme: 'light' | 'dark') => {
       borderColor: 'transparent',
     },
     tagActive: {
-      backgroundColor: theme.accent + '15',
-      borderColor: theme.accent,
+      backgroundColor: theme.accentTeal,
+      borderColor: theme.accentTeal,
     },
     tagText: {
       fontFamily: Typography.body.medium,
@@ -80,7 +80,7 @@ export const createStyles = (colorScheme: 'light' | 'dark') => {
       color: theme.tertiary,
     },
     tagTextActive: {
-      color: theme.accent,
+      color: '#ffffff',
       fontFamily: Typography.body.bold,
     },
     scrollContent: {
@@ -157,7 +157,7 @@ export const createStyles = (colorScheme: 'light' | 'dark') => {
     newsTag: {
       fontFamily: Typography.body.bold,
       fontSize: 12,
-      color: theme.accent,
+      color: theme.accentTeal,
     },
     // Road Card
     roadCard: {
@@ -263,7 +263,7 @@ export const createStyles = (colorScheme: 'light' | 'dark') => {
     detailDate: {
       fontFamily: Typography.body.bold,
       fontSize: 12,
-      color: theme.accent,
+      color: theme.accentOrange,
       textTransform: 'uppercase',
       letterSpacing: 1,
       marginBottom: 8,
@@ -285,21 +285,21 @@ export const createStyles = (colorScheme: 'light' | 'dark') => {
       paddingHorizontal: 12,
       paddingVertical: 6,
       borderRadius: 20,
-      backgroundColor: theme.accent + '10',
+      backgroundColor: theme.accentTeal + '10',
       borderWidth: 1,
-      borderColor: theme.accent + '30',
+      borderColor: theme.accentTeal + '30',
     },
     detailTagText: {
       fontFamily: Typography.body.bold,
       fontSize: 12,
-      color: theme.accent,
+      color: theme.accentTeal,
     },
     summaryBox: {
       backgroundColor: colorScheme === 'dark' ? 'rgba(255, 255, 255, 0.05)' : theme.lightGray,
       padding: 16,
       borderRadius: 16,
       borderLeftWidth: 4,
-      borderLeftColor: theme.accent,
+      borderLeftColor: theme.accentOrange,
       marginBottom: 24,
     },
     summaryText: {

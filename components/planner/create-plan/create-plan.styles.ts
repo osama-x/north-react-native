@@ -21,7 +21,7 @@ export const createStyles = (colorScheme: 'light' | 'dark') => {
     phaseText: {
       fontSize: 12,
       fontWeight: '700',
-      color: theme.accent,
+      color: theme.accentTeal,
       textTransform: 'uppercase',
       letterSpacing: 1,
     },
@@ -48,14 +48,14 @@ export const createStyles = (colorScheme: 'light' | 'dark') => {
       padding: 16,
       fontSize: 16,
       color: theme.primary,
-      borderWidth: 1,
+      borderWidth: 1.5,
       borderColor: theme.border,
     },
     dateInputBox: {
       backgroundColor: colorScheme === 'dark' ? 'rgba(255, 255, 255, 0.05)' : theme.lightGray,
       borderRadius: 16,
       padding: 16,
-      borderWidth: 1,
+      borderWidth: 1.5,
       borderColor: theme.border,
       flexDirection: 'row',
       alignItems: 'center',
@@ -82,7 +82,7 @@ export const createStyles = (colorScheme: 'light' | 'dark') => {
     sliderValue: {
       fontSize: 18,
       fontWeight: '800',
-      color: theme.accent,
+      color: theme.accentTeal,
     },
     sliderTrack: {
       height: 8,
@@ -94,7 +94,7 @@ export const createStyles = (colorScheme: 'light' | 'dark') => {
     },
     sliderFill: {
       height: '100%',
-      backgroundColor: theme.accent,
+      backgroundColor: theme.accentTeal,
       borderRadius: 4,
       flexDirection: 'row',
       justifyContent: 'flex-end',
@@ -106,7 +106,7 @@ export const createStyles = (colorScheme: 'light' | 'dark') => {
       borderRadius: 8,
       backgroundColor: '#ffffff',
       borderWidth: 3,
-      borderColor: theme.accent,
+      borderColor: theme.accentTeal,
       marginRight: -8,
       shadowColor: '#000',
       shadowOffset: { width: 0, height: 2 },
@@ -119,7 +119,7 @@ export const createStyles = (colorScheme: 'light' | 'dark') => {
       borderRadius: 24,
       padding: 20,
       marginBottom: 24,
-      borderWidth: 1,
+      borderWidth: 1.5,
       borderColor: theme.border,
     },
     travelerRow: {
@@ -146,7 +146,7 @@ export const createStyles = (colorScheme: 'light' | 'dark') => {
       backgroundColor: theme.background,
       borderRadius: 12,
       padding: 4,
-      borderWidth: 1,
+      borderWidth: 1.5,
       borderColor: theme.border,
     },
     counterButton: {
@@ -172,12 +172,13 @@ export const createStyles = (colorScheme: 'light' | 'dark') => {
       borderRadius: 16,
       padding: 16,
       marginBottom: 12,
-      borderWidth: 1.5,
+      borderWidth: 2,
       borderColor: 'transparent',
     },
     transportButtonActive: {
-      borderColor: theme.accent,
-      backgroundColor: theme.accent + '15',
+      borderWidth: 2.5,
+      borderColor: theme.accentOrange,
+      backgroundColor: theme.accentOrange + '15',
     },
     transportLabel: {
       fontSize: 16,

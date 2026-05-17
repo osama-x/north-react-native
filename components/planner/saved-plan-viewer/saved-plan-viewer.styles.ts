@@ -32,7 +32,7 @@ export const createStyles = (colorScheme: 'light' | 'dark') => {
       padding: 20,
       backgroundColor: colorScheme === 'dark' ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)',
       borderRadius: 24,
-      borderWidth: 1,
+      borderWidth: 1.5,
       borderColor: theme.border,
     },
     label: {
@@ -68,7 +68,7 @@ export const createStyles = (colorScheme: 'light' | 'dark') => {
       backgroundColor: colorScheme === 'dark' ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)',
       borderRadius: 24,
       overflow: 'hidden',
-      borderWidth: 1,
+      borderWidth: 1.5,
       borderColor: theme.border,
     },
     dayHeader: {
@@ -123,7 +123,7 @@ export const createStyles = (colorScheme: 'light' | 'dark') => {
       borderRadius: 20,
       padding: 20,
       marginBottom: 16,
-      borderWidth: 1,
+      borderWidth: 1.5,
       borderColor: theme.border,
       ...Platform.select({
         ios: {
@@ -138,12 +138,12 @@ export const createStyles = (colorScheme: 'light' | 'dark') => {
       }),
     },
     activityCard: {
-      backgroundColor: colorScheme === 'dark' ? 'rgba(46, 139, 88, 0.15)' : 'rgba(46, 139, 88, 0.08)',
-      borderColor: 'rgba(46, 139, 88, 0.2)',
+      backgroundColor: colorScheme === 'dark' ? theme.accentOrange + '15' : theme.accentOrange + '08',
+      borderColor: theme.accentOrange + '40',
     },
     travelCard: {
-      backgroundColor: colorScheme === 'dark' ? 'rgba(59, 130, 246, 0.15)' : 'rgba(59, 130, 246, 0.08)',
-      borderColor: 'rgba(59, 130, 246, 0.2)',
+      backgroundColor: colorScheme === 'dark' ? theme.accentTeal + '20' : theme.accentTeal + '10',
+      borderColor: theme.accentTeal + '50',
     },
     cardHeader: {
       flexDirection: 'row',
@@ -152,15 +152,16 @@ export const createStyles = (colorScheme: 'light' | 'dark') => {
       marginBottom: 12,
     },
     timeTag: {
-      backgroundColor: theme.accent + '15',
-      paddingHorizontal: 10,
-      paddingVertical: 4,
-      borderRadius: 8,
+      backgroundColor: theme.accentTeal + '25',
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderRadius: 10,
     },
     timeText: {
-      fontSize: 12,
-      fontWeight: '800',
-      color: theme.accent,
+      fontSize: 13,
+      fontWeight: '900',
+      color: theme.accentTeal,
+      letterSpacing: 0.5,
     },
     durationText: {
       fontSize: 12,
@@ -169,10 +170,10 @@ export const createStyles = (colorScheme: 'light' | 'dark') => {
     },
     arrivalNote: {
       fontSize: 12,
-      color: theme.accent,
+      color: theme.primary,
       fontFamily: Platform.OS === 'ios' ? 'Inter-SemiBold' : 'Inter_600SemiBold',
       marginTop: 8,
-      backgroundColor: theme.accent + '10',
+      backgroundColor: colorScheme === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)',
       paddingHorizontal: 8,
       paddingVertical: 4,
       borderRadius: 6,
@@ -198,13 +199,11 @@ export const createStyles = (colorScheme: 'light' | 'dark') => {
 
     // Custom Badge
     customBadge: {
-      backgroundColor: theme.accent,
+      backgroundColor: theme.accentOrange,
       paddingHorizontal: 6,
       paddingVertical: 2,
       borderRadius: 4,
       marginRight: 8,
-      alignSelf: 'flex-start',
-      marginBottom: 8,
     },
     customBadgeText: {
       color: '#fff',
@@ -377,6 +376,15 @@ export const createStyles = (colorScheme: 'light' | 'dark') => {
       color: theme.primary,
       marginBottom: 20,
     },
+    modalFieldLabel: {
+      fontSize: 12,
+      fontWeight: '700',
+      color: theme.tertiary,
+      marginBottom: 6,
+      marginLeft: 4,
+      textTransform: 'uppercase',
+      letterSpacing: 0.5,
+    },
     modalInput: {
       backgroundColor: colorScheme === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)',
       borderRadius: 16,
@@ -408,7 +416,7 @@ export const createStyles = (colorScheme: 'light' | 'dark') => {
       paddingVertical: 16,
       borderRadius: 16,
       alignItems: 'center',
-      backgroundColor: theme.accent,
+      backgroundColor: theme.accentTeal,
     },
     btnText: {
       fontWeight: '700',
